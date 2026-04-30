@@ -15,26 +15,70 @@
       <span class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span> يوم</span>
     </div>
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="timer">التايمر</button>
-      <button class="tab-btn" data-tab="dashboard">الداش بورد</button>
-      <button class="tab-btn" data-tab="history">السجل</button>
+      <button class="tab-btn active" data-tab="timer">التايمر <kbd>Alt+1</kbd></button>
+      <button class="tab-btn" data-tab="dashboard">الداش بورد <kbd>Alt+2</kbd></button>
+      <button class="tab-btn" data-tab="history">السجل <kbd>Alt+3</kbd></button>
     </nav>
     <div class="topbar-right">
-      <button class="icon-btn" id="themeToggle" title="تبديل الثيم">🌙</button>
-      <button class="icon-btn" id="exportBtn" title="تصدير">📤</button>
+      <button class="icon-btn" id="themeToggle">🌙 <kbd>T</kbd></button>
+      <button class="icon-btn" id="exportBtn">📤 <kbd>E</kbd></button>
+      <button class="icon-btn" id="helpBtn">⌨️ <kbd>H</kbd></button>
     </div>
   </header>
+
+  <!-- ====== لوحة الاختصارات ====== -->
+  <div class="shortcuts-overlay" id="shortcutsOverlay"></div>
+  <div class="shortcuts-panel" id="shortcutsPanel">
+    <div class="sp-header">
+      <span>⌨️ اختصارات الكيبورد الكاملة</span>
+      <button id="closeShortcuts">✕</button>
+    </div>
+    <div class="sp-grid">
+      <div class="sp-section">
+        <div class="sp-title">🎮 التايمر</div>
+        <div class="sp-row"><kbd>Space</kbd><span>ابدأ / إيقاف</span></div>
+        <div class="sp-row"><kbd>R</kbd><span>إعادة تعيين</span></div>
+        <div class="sp-row"><kbd>Q</kbd><span>إضافة سريعة</span></div>
+        <div class="sp-row"><kbd>+</kbd><span>زيادة الهدف 30د</span></div>
+        <div class="sp-row"><kbd>-</kbd><span>تقليل الهدف 30د</span></div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">🗂 التنقل</div>
+        <div class="sp-row"><kbd>Alt+1</kbd><span>صفحة التايمر</span></div>
+        <div class="sp-row"><kbd>Alt+2</kbd><span>الداش بورد</span></div>
+        <div class="sp-row"><kbd>Alt+3</kbd><span>السجل</span></div>
+        <div class="sp-row"><kbd>←</kbd><span>يوم سابق</span></div>
+        <div class="sp-row"><kbd>→</kbd><span>يوم تالي</span></div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">📋 البوب آب</div>
+        <div class="sp-row"><kbd>1</kbd><span>📚 دراسة</span></div>
+        <div class="sp-row"><kbd>2</kbd><span>☕ استراحة</span></div>
+        <div class="sp-row"><kbd>3</kbd><span>🕌 صلاة</span></div>
+        <div class="sp-row"><kbd>4</kbd><span>🍽 أكل</span></div>
+        <div class="sp-row"><kbd>5</kbd><span>📱 تسخيت</span></div>
+        <div class="sp-row"><kbd>6</kbd><span>✨ أخرى</span></div>
+        <div class="sp-row"><kbd>Esc</kbd><span>إغلاق</span></div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">⚙️ عام</div>
+        <div class="sp-row"><kbd>T</kbd><span>تبديل الثيم</span></div>
+        <div class="sp-row"><kbd>E</kbd><span>تصدير</span></div>
+        <div class="sp-row"><kbd>H</kbd><span>هذه القائمة</span></div>
+        <div class="sp-row"><kbd>C</kbd><span>تصدير CSV</span></div>
+        <div class="sp-row"><kbd>J</kbd><span>تصدير JSON</span></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ====== صفحة التايمر ====== -->
   <section class="page active" id="page-timer">
 
-    <!-- الوقت الحالي -->
     <div class="clock-wrapper">
       <div class="current-time" id="currentTime">00:00:00</div>
       <div class="current-date" id="currentDate"></div>
     </div>
 
-    <!-- التايمر الرئيسي -->
     <div class="timer-card">
       <div class="timer-ring-wrapper">
         <svg class="ring-svg" viewBox="0 0 220 220">
@@ -49,22 +93,20 @@
         </div>
       </div>
 
-      <!-- أزرار التحكم -->
       <div class="controls">
-        <button class="ctrl-btn reset" id="resetBtn" title="إعادة تعيين">↺</button>
-        <button class="ctrl-btn main" id="startBtn">▶ ابدأ</button>
-        <button class="ctrl-btn quick" id="quickAddBtn" title="إضافة سريعة">+ سريع</button>
+        <button class="ctrl-btn reset" id="resetBtn">↺ <kbd>R</kbd></button>
+        <button class="ctrl-btn main" id="startBtn">▶ ابدأ <kbd>Space</kbd></button>
+        <button class="ctrl-btn quick" id="quickAddBtn">+ سريع <kbd>Q</kbd></button>
       </div>
     </div>
 
-    <!-- هدف يومي -->
     <div class="goal-section">
       <div class="goal-header">
         <span>🎯 هدف الدراسة اليومي</span>
         <div class="goal-controls">
-          <button class="small-btn" id="goalMinus">−</button>
+          <button class="small-btn" id="goalMinus">− <kbd>-</kbd></button>
           <span id="goalDisplay">3 ساعات</span>
-          <button class="small-btn" id="goalPlus">+</button>
+          <button class="small-btn" id="goalPlus">+ <kbd>+</kbd></button>
         </div>
       </div>
       <div class="progress-bar-wrap">
@@ -73,11 +115,12 @@
       </div>
     </div>
 
-    <!-- آخر الأنشطة المسجلة -->
+    <div class="help-hint">اضغط <kbd>H</kbd> لعرض جميع الاختصارات</div>
+
     <div class="recent-section">
       <h3>آخر الأنشطة</h3>
       <div class="recent-list" id="recentList">
-        <p class="empty-msg">لا توجد أنشطة بعد. اضغط ابدأ!</p>
+        <p class="empty-msg">لا توجد أنشطة بعد — اضغط <kbd>Space</kbd> للبدء</p>
       </div>
     </div>
 
@@ -86,46 +129,20 @@
   <!-- ====== صفحة الداش بورد ====== -->
   <section class="page" id="page-dashboard">
     <div class="dash-date-nav">
-      <button class="icon-btn" id="prevDay">◀</button>
+      <button class="icon-btn nav-day" id="prevDay">◀ <kbd>←</kbd></button>
       <span id="dashDate">اليوم</span>
-      <button class="icon-btn" id="nextDay">▶</button>
+      <button class="icon-btn nav-day" id="nextDay"><kbd>→</kbd> ▶</button>
     </div>
 
-    <!-- إحصائيات سريعة -->
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat-card">
-        <div class="stat-icon">📚</div>
-        <div class="stat-label">دراسة</div>
-        <div class="stat-value" id="stat-study">0 د</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">☕</div>
-        <div class="stat-label">استراحة</div>
-        <div class="stat-value" id="stat-break">0 د</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🕌</div>
-        <div class="stat-label">صلاة</div>
-        <div class="stat-value" id="stat-prayer">0 د</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🍽</div>
-        <div class="stat-label">أكل</div>
-        <div class="stat-value" id="stat-food">0 د</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📱</div>
-        <div class="stat-label">تسخيت</div>
-        <div class="stat-value" id="stat-waste">0 د</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">✨</div>
-        <div class="stat-label">أخرى</div>
-        <div class="stat-value" id="stat-other">0 د</div>
-      </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-label">دراسة</div><div class="stat-value" id="stat-study">0 د</div></div>
+      <div class="stat-card"><div class="stat-icon">☕</div><div class="stat-label">استراحة</div><div class="stat-value" id="stat-break">0 د</div></div>
+      <div class="stat-card"><div class="stat-icon">🕌</div><div class="stat-label">صلاة</div><div class="stat-value" id="stat-prayer">0 د</div></div>
+      <div class="stat-card"><div class="stat-icon">🍽</div><div class="stat-label">أكل</div><div class="stat-value" id="stat-food">0 د</div></div>
+      <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-label">تسخيت</div><div class="stat-value" id="stat-waste">0 د</div></div>
+      <div class="stat-card"><div class="stat-icon">✨</div><div class="stat-label">أخرى</div><div class="stat-value" id="stat-other">0 د</div></div>
     </div>
 
-    <!-- الرسوم البيانية -->
     <div class="charts-row">
       <div class="chart-card">
         <h3>توزيع الوقت</h3>
@@ -138,7 +155,6 @@
       </div>
     </div>
 
-    <!-- تايم لاين -->
     <div class="timeline-section">
       <h3>التايم لاين</h3>
       <div class="timeline" id="timeline">
@@ -155,61 +171,62 @@
     </div>
   </section>
 
-  <!-- ====== البوب آب ====== -->
+  <!-- ====== البوب آب الرئيسي ====== -->
   <div class="overlay" id="overlay"></div>
+
   <div class="popup" id="popup">
     <div class="popup-header">
       <div class="popup-icon">⏰</div>
       <h2>ماذا كنت تفعل؟</h2>
       <p>انتهى إنتيرفال 10 دقائق!</p>
     </div>
-    <div class="activity-grid">
-      <button class="act-btn" data-activity="دراسة" data-color="#4ade80">📚 دراسة</button>
-      <button class="act-btn" data-activity="استراحة" data-color="#60a5fa">☕ استراحة</button>
-      <button class="act-btn" data-activity="صلاة" data-color="#f59e0b">🕌 صلاة</button>
-      <button class="act-btn" data-activity="أكل" data-color="#f97316">🍽 أكل</button>
-      <button class="act-btn" data-activity="تسخيت" data-color="#f43f5e">📱 تسخيت</button>
-      <button class="act-btn other-btn" data-activity="أخرى" data-color="#a78bfa">✨ أخرى</button>
+    <div class="activity-grid" id="popupGrid">
+      <button class="act-btn" data-activity="دراسة"   data-color="#4ade80">📚 دراسة   <kbd>1</kbd></button>
+      <button class="act-btn" data-activity="استراحة" data-color="#60a5fa">☕ استراحة <kbd>2</kbd></button>
+      <button class="act-btn" data-activity="صلاة"    data-color="#f59e0b">🕌 صلاة    <kbd>3</kbd></button>
+      <button class="act-btn" data-activity="أكل"     data-color="#f97316">🍽 أكل     <kbd>4</kbd></button>
+      <button class="act-btn" data-activity="تسخيت"   data-color="#f43f5e">📱 تسخيت   <kbd>5</kbd></button>
+      <button class="act-btn other-btn" data-activity="أخرى" data-color="#a78bfa">✨ أخرى <kbd>6</kbd></button>
     </div>
     <div class="custom-input-wrap" id="customInputWrap">
       <input type="text" id="customActivity" placeholder="اكتب النشاط..." maxlength="30"/>
-      <button class="confirm-custom" id="confirmCustom">تأكيد</button>
+      <button class="confirm-custom" id="confirmCustom">تأكيد <kbd>↵</kbd></button>
     </div>
   </div>
 
   <!-- ====== بوب آب الإضافة السريعة ====== -->
   <div class="popup quick-popup" id="quickPopup">
     <div class="popup-header">
-      <h2>إضافة سريعة</h2>
-      <p>سجّل نشاطًا الآن</p>
+      <h2>⚡ إضافة سريعة</h2>
+      <p>سجّل نشاطًا يدويًا</p>
     </div>
-    <div class="activity-grid">
-      <button class="act-btn" data-activity="دراسة" data-color="#4ade80">📚 دراسة</button>
-      <button class="act-btn" data-activity="استراحة" data-color="#60a5fa">☕ استراحة</button>
-      <button class="act-btn" data-activity="صلاة" data-color="#f59e0b">🕌 صلاة</button>
-      <button class="act-btn" data-activity="أكل" data-color="#f97316">🍽 أكل</button>
-      <button class="act-btn" data-activity="تسخيت" data-color="#f43f5e">📱 تسخيت</button>
-      <button class="act-btn other-btn" data-activity="أخرى" data-color="#a78bfa">✨ أخرى</button>
+    <div class="activity-grid" id="quickGrid">
+      <button class="act-btn" data-activity="دراسة"   data-color="#4ade80">📚 دراسة   <kbd>1</kbd></button>
+      <button class="act-btn" data-activity="استراحة" data-color="#60a5fa">☕ استراحة <kbd>2</kbd></button>
+      <button class="act-btn" data-activity="صلاة"    data-color="#f59e0b">🕌 صلاة    <kbd>3</kbd></button>
+      <button class="act-btn" data-activity="أكل"     data-color="#f97316">🍽 أكل     <kbd>4</kbd></button>
+      <button class="act-btn" data-activity="تسخيت"   data-color="#f43f5e">📱 تسخيت   <kbd>5</kbd></button>
+      <button class="act-btn other-btn" data-activity="أخرى" data-color="#a78bfa">✨ أخرى <kbd>6</kbd></button>
     </div>
     <div class="custom-input-wrap" id="quickCustomWrap">
       <input type="text" id="quickCustomActivity" placeholder="اكتب النشاط..." maxlength="30"/>
-      <button class="confirm-custom" id="confirmQuickCustom">تأكيد</button>
+      <button class="confirm-custom" id="confirmQuickCustom">تأكيد <kbd>↵</kbd></button>
     </div>
     <div class="quick-duration">
       <label>المدة (دقائق):</label>
       <input type="number" id="quickDuration" value="10" min="1" max="120"/>
     </div>
-    <button class="close-btn" id="closeQuickPopup">إلغاء</button>
+    <button class="close-btn" id="closeQuickPopup">إلغاء <kbd>Esc</kbd></button>
   </div>
 
-  <!-- ====== موداль الإكسبورت ====== -->
+  <!-- ====== بوب آب الإكسبورت ====== -->
   <div class="popup export-popup" id="exportPopup">
     <h2>📤 تصدير البيانات</h2>
     <div class="export-options">
-      <button class="export-btn csv-btn" id="exportCSV">📊 تصدير CSV</button>
-      <button class="export-btn json-btn" id="exportJSON">📄 تصدير JSON</button>
+      <button class="export-btn csv-btn" id="exportCSVBtn">📊 تصدير CSV <kbd>C</kbd></button>
+      <button class="export-btn json-btn" id="exportJSONBtn">📄 تصدير JSON <kbd>J</kbd></button>
     </div>
-    <button class="close-btn" id="closeExport">إغلاق</button>
+    <button class="close-btn" id="closeExport">إغلاق <kbd>Esc</kbd></button>
   </div>
 
   <script src="script.js"></script>
