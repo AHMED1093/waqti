@@ -259,10 +259,10 @@ function hideActivityPopup() {
 /** تسجيل النشاط عند الاختيار */
 function selectActivity(activityName, durationMinutes = 10) {
   const now = new Date();
-  const endTime = now.toLocaleTimeString('ar-IQ', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  const endTime = now.toLocaleTimeString('ar-IQ', { hour12: true, hour: '2-digit', minute: '2-digit' });
   const startMs = now.getTime() - durationMinutes * 60000;
   const startDate = new Date(startMs);
-  const startTime = startDate.toLocaleTimeString('ar-IQ', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  const startTime = startDate.toLocaleTimeString('ar-IQ', { hour12: true, hour: '2-digit', minute: '2-digit' });
 
   const entry = {
     activity: activityName,
