@@ -1,0 +1,738 @@
+/* ===========================
+   متتبع الوقت اليومي - ستايل
+   =========================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+
+/* ====== متغيرات الثيم ====== */
+:root {
+  --bg: #0d0f14;
+  --bg2: #13161e;
+  --bg3: #1a1e2a;
+  --surface: #1e2334;
+  --surface2: #252b3b;
+  --border: #2e3548;
+  --text: #e8ecf5;
+  --text2: #8b95b0;
+  --text3: #555f78;
+  --accent: #6c63ff;
+  --accent2: #8b83ff;
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --amber: #f59e0b;
+  --orange: #f97316;
+  --rose: #f43f5e;
+  --purple: #a78bfa;
+  --glow: rgba(108, 99, 255, 0.35);
+  --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  --radius: 18px;
+  --radius-sm: 10px;
+  --transition: 0.3s cubic-bezier(.4,0,.2,1);
+}
+
+body.light {
+  --bg: #f0f2f8;
+  --bg2: #e8eaf2;
+  --bg3: #dfe2ee;
+  --surface: #ffffff;
+  --surface2: #f5f6fc;
+  --border: #d0d4e8;
+  --text: #1a1e2a;
+  --text2: #4a5068;
+  --text3: #8890a8;
+  --glow: rgba(108, 99, 255, 0.15);
+  --shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+/* ====== ريست وأساسيات ====== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  direction: rtl;
+  overflow-x: hidden;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* خلفية تأثيرية */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ====== شريط التنقل ====== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+
+.logo {
+  font-size: 1.3rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.streak-badge {
+  background: linear-gradient(135deg, #ff6b35, #f7c59f);
+  color: #1a0a00;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg2);
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: 'Cairo', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px var(--glow);
+}
+
+.topbar-right { display: flex; gap: 8px; }
+
+.icon-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-btn:hover { background: var(--border); transform: translateY(-1px); }
+
+/* ====== الصفحات ====== */
+.page {
+  display: none;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  position: relative;
+  z-index: 1;
+}
+.page.active { display: block; }
+
+/* ====== الساعة الحالية ====== */
+.clock-wrapper { text-align: center; margin-bottom: 20px; }
+
+.current-time {
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--text), var(--text2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.current-date {
+  color: var(--text2);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+/* ====== بطاقة التايمر ====== */
+.timer-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+/* حلقة التايمر */
+.timer-ring-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.ring-svg {
+  width: 220px;
+  height: 220px;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: var(--bg3);
+  stroke-width: 14;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: url(#ringGrad);
+  stroke-width: 14;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+/* تعريف الجراديينت داخل الـ SVG */
+.ring-svg defs { position: absolute; }
+
+.timer-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.timer-minutes {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.timer-label {
+  font-size: 0.75rem;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+.interval-count {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* أزرار التحكم */
+.controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ctrl-btn {
+  border: none;
+  border-radius: 14px;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ctrl-btn.main {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  font-size: 1.05rem;
+  padding: 14px 36px;
+  box-shadow: 0 4px 20px var(--glow);
+}
+.ctrl-btn.main:hover { transform: translateY(-2px); box-shadow: 0 8px 28px var(--glow); }
+.ctrl-btn.main:active { transform: translateY(0); }
+
+.ctrl-btn.reset {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 1.2rem;
+  width: 50px;
+  height: 50px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px;
+}
+.ctrl-btn.reset:hover { background: var(--border); color: var(--text); }
+
+.ctrl-btn.quick {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--purple);
+  font-size: 0.88rem;
+  padding: 14px 18px;
+}
+.ctrl-btn.quick:hover { background: var(--border); }
+
+/* ====== قسم الهدف ====== */
+.goal-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.goal-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.small-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.small-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+.progress-bar-wrap {
+  background: var(--bg3);
+  border-radius: 100px;
+  height: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--accent));
+  border-radius: 100px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+.progress-text {
+  font-size: 0.78rem;
+  color: var(--text3);
+  display: block;
+  margin-top: 6px;
+}
+
+/* ====== آخر الأنشطة ====== */
+.recent-section h3 {
+  font-size: 0.95rem;
+  color: var(--text2);
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-right: 4px solid var(--c, var(--accent));
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  animation: slideIn 0.35s ease;
+}
+
+.recent-item .act-name { font-weight: 700; color: var(--text); }
+.recent-item .act-time { color: var(--text3); font-size: 0.8rem; }
+.recent-item .act-dur { color: var(--text2); font-size: 0.8rem; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.empty-msg { color: var(--text3); text-align: center; font-size: 0.88rem; padding: 20px; }
+
+/* ====== الداش بورد ====== */
+.dash-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text2);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  transition: var(--transition);
+}
+.stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+.stat-icon { font-size: 1.6rem; margin-bottom: 6px; }
+.stat-label { font-size: 0.75rem; color: var(--text3); }
+.stat-value { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-top: 4px; }
+
+/* ====== الرسوم البيانية ====== */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-card h3 {
+  font-size: 0.88rem;
+  color: var(--text2);
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+canvas { max-width: 100%; }
+
+.pie-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text2);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ====== التايم لاين ====== */
+.timeline-section h3 {
+  font-size: 0.95rem;
+  color: var(--text2);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  border-right: 4px solid var(--c, var(--accent));
+}
+
+.tl-time { color: var(--text3); font-size: 0.78rem; min-width: 110px; font-family: monospace; }
+.tl-act { font-weight: 700; color: var(--text); }
+.tl-dur { color: var(--text3); font-size: 0.78rem; margin-right: auto; }
+
+/* ====== السجل ====== */
+.history-list { display: flex; flex-direction: column; gap: 10px; }
+#page-history h2 { font-size: 1.1rem; color: var(--text2); margin-bottom: 18px; }
+
+.hist-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hist-card:hover { border-color: var(--accent); transform: translateX(-3px); }
+
+.hist-date { font-weight: 700; font-size: 0.92rem; }
+.hist-summary { font-size: 0.8rem; color: var(--text3); }
+.hist-arrow { color: var(--text3); }
+
+/* ====== الأوفرلاي والبوب آب ====== */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+}
+.overlay.active { display: block; }
+
+.popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: min(480px, 95vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px 28px;
+  z-index: 300;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
+}
+
+.popup.active {
+  display: block;
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+.popup-header { text-align: center; margin-bottom: 24px; }
+
+.popup-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.popup-header h2 { font-size: 1.3rem; font-weight: 900; margin-bottom: 4px; }
+.popup-header p { color: var(--text3); font-size: 0.88rem; }
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.act-btn {
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  color: var(--text);
+  font-family: 'Cairo', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 14px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.act-btn:hover {
+  border-color: var(--c, var(--accent));
+  background: color-mix(in srgb, var(--c, var(--accent)) 15%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--c, var(--accent)) 30%, transparent);
+}
+
+.act-btn.selected {
+  border-color: var(--c, var(--accent));
+  background: color-mix(in srgb, var(--c, var(--accent)) 20%, transparent);
+}
+
+.custom-input-wrap {
+  display: none;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.custom-input-wrap.visible { display: flex; }
+
+.custom-input-wrap input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Cairo', sans-serif;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  outline: none;
+}
+.custom-input-wrap input:focus { border-color: var(--accent); }
+
+.confirm-custom {
+  background: var(--accent);
+  border: none;
+  color: white;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.confirm-custom:hover { background: var(--accent2); }
+
+/* ====== بوب آب الإضافة السريعة ====== */
+.quick-popup .quick-duration {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text2);
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
+
+.quick-popup .quick-duration input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Cairo', sans-serif;
+  padding: 6px 10px;
+  border-radius: 8px;
+  width: 70px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.close-btn {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'Cairo', sans-serif;
+  font-size: 0.9rem;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 600;
+}
+.close-btn:hover { background: var(--border); color: var(--text); }
+
+/* ====== بوب آب الإكسبورت ====== */
+.export-popup h2 { text-align: center; margin-bottom: 24px; font-size: 1.2rem; }
+
+.export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+.export-btn {
+  border: 2px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-family: 'Cairo', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.csv-btn:hover { border-color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent); }
+.json-btn:hover { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, transparent); }
+
+/* ====== تفاصيل متنوعة ====== */
+@media (max-width: 500px) {
+  .charts-row { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .activity-grid { grid-template-columns: repeat(2, 1fr); }
+  .current-time { font-size: 2.5rem; }
+}
+
+/* سكرول بار مخصص */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* لون الإنتيرفال */
+body.running .ring-progress { stroke: url(#ringGrad); }
+
+/* أنيميشن لكل البطاقات */
+.stat-card, .chart-card, .timer-card, .goal-section {
+  animation: fadeUp 0.45s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
