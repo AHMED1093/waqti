@@ -8,11 +8,11 @@
 </head>
 <body class="dark">
 
-  <!-- ====== شريط التنقل العلوي ====== -->
+  <!-- ====== التوب بار ====== -->
   <header class="topbar">
     <div class="topbar-left">
       <span class="logo">⏱ وقتي</span>
-      <span class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span> يوم</span>
+      <span class="streak-badge">🔥 <span id="streakCount">0</span> يوم</span>
     </div>
     <nav class="tabs">
       <button class="tab-btn active" data-tab="timer">التايمر <kbd>Alt+1</kbd></button>
@@ -35,7 +35,7 @@
     </div>
     <div class="sp-grid">
       <div class="sp-section">
-        <div class="sp-title">🎮 التايمر</div>
+        <div class="sp-title">🎮 التايمر الرئيسي</div>
         <div class="sp-row"><kbd>Space</kbd><span>ابدأ / إيقاف</span></div>
         <div class="sp-row"><kbd>R</kbd><span>إعادة تعيين</span></div>
         <div class="sp-row"><kbd>Q</kbd><span>إضافة سريعة</span></div>
@@ -43,12 +43,19 @@
         <div class="sp-row"><kbd>-</kbd><span>تقليل الهدف 30د</span></div>
       </div>
       <div class="sp-section">
+        <div class="sp-title">⚡ تايمر السبرينت</div>
+        <div class="sp-row"><kbd>S</kbd><span>ابدأ / إيقاف السبرينت</span></div>
+        <div class="sp-row"><kbd>X</kbd><span>حفظ وإيقاف الجلسة</span></div>
+        <div class="sp-row"><kbd>Z</kbd><span>إعادة تعيين السبرينت</span></div>
+        <div class="sp-row"><kbd>M</kbd><span>تصغير / توسيع الويدجيت</span></div>
+      </div>
+      <div class="sp-section">
         <div class="sp-title">🗂 التنقل</div>
         <div class="sp-row"><kbd>Alt+1</kbd><span>صفحة التايمر</span></div>
         <div class="sp-row"><kbd>Alt+2</kbd><span>الداش بورد</span></div>
         <div class="sp-row"><kbd>Alt+3</kbd><span>السجل</span></div>
-        <div class="sp-row"><kbd>←</kbd><span>يوم سابق</span></div>
-        <div class="sp-row"><kbd>→</kbd><span>يوم تالي</span></div>
+        <div class="sp-row"><kbd>←</kbd><span>يوم سابق (داش بورد)</span></div>
+        <div class="sp-row"><kbd>→</kbd><span>يوم تالي (داش بورد)</span></div>
       </div>
       <div class="sp-section">
         <div class="sp-title">📋 البوب آب</div>
@@ -63,10 +70,10 @@
       <div class="sp-section">
         <div class="sp-title">⚙️ عام</div>
         <div class="sp-row"><kbd>T</kbd><span>تبديل الثيم</span></div>
-        <div class="sp-row"><kbd>E</kbd><span>تصدير</span></div>
-        <div class="sp-row"><kbd>H</kbd><span>هذه القائمة</span></div>
+        <div class="sp-row"><kbd>E</kbd><span>فتح الإكسبورت</span></div>
         <div class="sp-row"><kbd>C</kbd><span>تصدير CSV</span></div>
         <div class="sp-row"><kbd>J</kbd><span>تصدير JSON</span></div>
+        <div class="sp-row"><kbd>H</kbd><span>هذه القائمة</span></div>
       </div>
     </div>
   </div>
@@ -82,6 +89,12 @@
     <div class="timer-card">
       <div class="timer-ring-wrapper">
         <svg class="ring-svg" viewBox="0 0 220 220">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#6c63ff"/>
+              <stop offset="100%" stop-color="#60a5fa"/>
+            </linearGradient>
+          </defs>
           <circle class="ring-bg" cx="110" cy="110" r="95"/>
           <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="95"
             stroke-dasharray="596.9" stroke-dashoffset="596.9"/>
@@ -92,7 +105,6 @@
           <div class="interval-count">إنتيرفال <span id="intervalNum">1</span></div>
         </div>
       </div>
-
       <div class="controls">
         <button class="ctrl-btn reset" id="resetBtn">↺ <kbd>R</kbd></button>
         <button class="ctrl-btn main" id="startBtn">▶ ابدأ <kbd>Space</kbd></button>
@@ -133,7 +145,6 @@
       <span id="dashDate">اليوم</span>
       <button class="icon-btn nav-day" id="nextDay"><kbd>→</kbd> ▶</button>
     </div>
-
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-label">دراسة</div><div class="stat-value" id="stat-study">0 د</div></div>
       <div class="stat-card"><div class="stat-icon">☕</div><div class="stat-label">استراحة</div><div class="stat-value" id="stat-break">0 د</div></div>
@@ -142,7 +153,6 @@
       <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-label">تسخيت</div><div class="stat-value" id="stat-waste">0 د</div></div>
       <div class="stat-card"><div class="stat-icon">✨</div><div class="stat-label">أخرى</div><div class="stat-value" id="stat-other">0 د</div></div>
     </div>
-
     <div class="charts-row">
       <div class="chart-card">
         <h3>توزيع الوقت</h3>
@@ -154,11 +164,32 @@
         <canvas id="barChart" width="320" height="240"></canvas>
       </div>
     </div>
-
     <div class="timeline-section">
       <h3>التايم لاين</h3>
       <div class="timeline" id="timeline">
         <p class="empty-msg">لا توجد بيانات لهذا اليوم</p>
+      </div>
+    </div>
+    <!-- إحصائيات السبرينت في الداش بورد -->
+    <div id="sprintDashSection" class="sprint-dash-section" style="display:none">
+      <div class="sprint-dash-header">
+        <h3>⚡ جلسات السبرينت</h3>
+      </div>
+      <div class="sprint-dash-stats-grid">
+        <div class="stat-card"><div class="stat-icon">⏱</div><div class="stat-label">مجموع الوقت</div><div class="stat-value" id="sd-total">0 د</div></div>
+        <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-label">عدد الجلسات</div><div class="stat-value" id="sd-count">0</div></div>
+        <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-label">أطول جلسة</div><div class="stat-value" id="sd-best">0 د</div></div>
+        <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-label">متوسط الجلسة</div><div class="stat-value" id="sd-avg">0 د</div></div>
+      </div>
+      <div class="sprint-dash-charts">
+        <div class="chart-card">
+          <h3>توزيع جلسات السبرينت</h3>
+          <canvas id="sprintBarChart" width="320" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>تايم لاين السبرينت</h3>
+          <div class="timeline" id="sprintTimeline"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -180,7 +211,7 @@
       <h2>ماذا كنت تفعل؟</h2>
       <p>انتهى إنتيرفال 10 دقائق!</p>
     </div>
-    <div class="activity-grid" id="popupGrid">
+    <div class="activity-grid">
       <button class="act-btn" data-activity="دراسة"   data-color="#4ade80">📚 دراسة   <kbd>1</kbd></button>
       <button class="act-btn" data-activity="استراحة" data-color="#60a5fa">☕ استراحة <kbd>2</kbd></button>
       <button class="act-btn" data-activity="صلاة"    data-color="#f59e0b">🕌 صلاة    <kbd>3</kbd></button>
@@ -200,7 +231,7 @@
       <h2>⚡ إضافة سريعة</h2>
       <p>سجّل نشاطًا يدويًا</p>
     </div>
-    <div class="activity-grid" id="quickGrid">
+    <div class="activity-grid">
       <button class="act-btn" data-activity="دراسة"   data-color="#4ade80">📚 دراسة   <kbd>1</kbd></button>
       <button class="act-btn" data-activity="استراحة" data-color="#60a5fa">☕ استراحة <kbd>2</kbd></button>
       <button class="act-btn" data-activity="صلاة"    data-color="#f59e0b">🕌 صلاة    <kbd>3</kbd></button>
@@ -227,6 +258,93 @@
       <button class="export-btn json-btn" id="exportJSONBtn">📄 تصدير JSON <kbd>J</kbd></button>
     </div>
     <button class="close-btn" id="closeExport">إغلاق <kbd>Esc</kbd></button>
+  </div>
+
+  <!-- ====== ويدجيت تايمر السبرينت ====== -->
+  <div class="sprint-widget" id="sprintWidget">
+
+    <!-- الرأس -->
+    <div class="sw-header" id="swHeader">
+      <span class="sw-title">⚡ سبرينت <kbd class="sw-kbd">S</kbd></span>
+      <button class="sw-min-btn" id="swMinimize" title="تصغير [M]">—</button>
+    </div>
+
+    <!-- الجسم الكامل -->
+    <div class="sw-body" id="swBody">
+
+      <!-- الوقت مع حلقة SVG -->
+      <div class="sw-ring-wrapper">
+        <svg class="sw-ring-svg" viewBox="0 0 140 140">
+          <defs>
+            <linearGradient id="swGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#4ade80"/>
+              <stop offset="100%" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <circle class="sw-ring-bg"  cx="70" cy="70" r="58"/>
+          <circle class="sw-ring-arc" id="swRingArc" cx="70" cy="70" r="58"
+            stroke-dasharray="364.4" stroke-dashoffset="364.4"/>
+        </svg>
+        <div class="sw-time-inner">
+          <div class="sw-time" id="swTime">00:00</div>
+          <div class="sw-time-label" id="swStatusLabel">جاهز</div>
+        </div>
+      </div>
+
+      <!-- بارات الدقائق المنجزة -->
+      <div class="sw-minute-bars" id="swMinuteBars"></div>
+
+      <!-- أزرار التحكم -->
+      <div class="sw-controls">
+        <button class="sw-btn sw-reset-btn" id="swReset" title="إعادة تعيين [Z]">↺ <kbd>Z</kbd></button>
+        <button class="sw-btn sw-start-btn" id="swStart" title="ابدأ / إيقاف [S]">▶ ابدأ <kbd>S</kbd></button>
+        <button class="sw-btn sw-save-btn"  id="swSave"  title="حفظ وإيقاف [X]">✓ <kbd>X</kbd></button>
+      </div>
+
+      <!-- إحصائيات اليوم -->
+      <div class="sw-stats-section">
+        <div class="sw-stats-title">إحصائيات اليوم</div>
+        <div class="sw-stats-grid">
+          <div class="sw-stat-item">
+            <div class="sw-stat-value" id="swStatTotal">0:00</div>
+            <div class="sw-stat-label">المجموع</div>
+          </div>
+          <div class="sw-stat-item">
+            <div class="sw-stat-value" id="swStatCount">0</div>
+            <div class="sw-stat-label">الجلسات</div>
+          </div>
+          <div class="sw-stat-item">
+            <div class="sw-stat-value" id="swStatBest">0:00</div>
+            <div class="sw-stat-label">الأطول</div>
+          </div>
+          <div class="sw-stat-item">
+            <div class="sw-stat-value" id="swStatAvg">0:00</div>
+            <div class="sw-stat-label">المتوسط</div>
+          </div>
+        </div>
+        <!-- بروجريس بار المجموع -->
+        <div class="sw-goal-wrap">
+          <div class="sw-goal-bar">
+            <div class="sw-goal-fill" id="swGoalFill" style="width:0%"></div>
+          </div>
+          <div class="sw-goal-text" id="swGoalText">0 / 60 دقيقة</div>
+        </div>
+        <!-- آخر جلسة -->
+        <div class="sw-last-session" id="swLastSession" style="display:none">
+          <span class="sw-last-label">آخر جلسة:</span>
+          <span class="sw-last-val" id="swLastVal">—</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- الوضع المصغّر -->
+    <div class="sw-mini" id="swMini">
+      <div class="sw-mini-pulse" id="swMiniPulse"></div>
+      <span class="sw-mini-time" id="swMiniTime">00:00</span>
+      <button class="sw-min-btn" id="swExpand" title="توسيع [M]">▲</button>
+    </div>
+
   </div>
 
   <script src="script.js"></script>
