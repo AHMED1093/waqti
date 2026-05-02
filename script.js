@@ -314,9 +314,7 @@ function showActivityPopup() {
   }
 
   document.getElementById('overlay').classList.add('active');
-  const popup = document.getElementById('popup');
-  popup.style.display = 'block';
-  requestAnimationFrame(() => popup.classList.add('active'));
+  document.getElementById('popup').classList.add('active');
   document.getElementById('customInputWrap').classList.remove('visible');
   document.getElementById('customActivity').value = '';
 }
@@ -325,21 +323,17 @@ function hideActivityPopup() {
   popupOpen = false;
   state.activePopup = null;
 
-  const popup   = document.getElementById('popup');
   const overlay = document.getElementById('overlay');
+  document.getElementById('popup').classList.remove('active');
 
-  popup.classList.remove('active');
-
+  // انتظر انتهاء الترانزيشن (.35s) ثم افتح التالي أو أغلق الأوفرلاي
   setTimeout(() => {
-    popup.style.display = 'none';
-
-    // إذا في طابور، ابقِ الأوفرلاي وافتح البوب آب التالي مباشرة
     if (popupQueue.length > 0) {
       drainPopupQueue(); // الأوفرلاي يبقى active
     } else {
-      overlay.classList.remove('active'); // لا يوجد طابور — أغلق الأوفرلاي
+      overlay.classList.remove('active');
     }
-  }, 350);
+  }, 380);
 }
 
 function selectActivity(activityName, durationMinutes = 10) {
@@ -807,9 +801,7 @@ function switchTab(tabName) {
 function showQuickAdd() {
   state.activePopup = 'quick';
   document.getElementById('overlay').classList.add('active');
-  const popup = document.getElementById('quickPopup');
-  popup.style.display = 'block';
-  requestAnimationFrame(() => popup.classList.add('active'));
+  document.getElementById('quickPopup').classList.add('active');
   document.getElementById('quickCustomWrap').classList.remove('visible');
   document.getElementById('quickCustomActivity').value = '';
 }
@@ -817,25 +809,19 @@ function showQuickAdd() {
 function hideQuickAdd() {
   state.activePopup = null;
   document.getElementById('overlay').classList.remove('active');
-  const popup = document.getElementById('quickPopup');
-  popup.classList.remove('active');
-  setTimeout(() => { popup.style.display='none'; }, 350);
+  document.getElementById('quickPopup').classList.remove('active');
 }
 
 function showExportPopup() {
   state.activePopup = 'export';
   document.getElementById('overlay').classList.add('active');
-  const popup = document.getElementById('exportPopup');
-  popup.style.display = 'block';
-  requestAnimationFrame(() => popup.classList.add('active'));
+  document.getElementById('exportPopup').classList.add('active');
 }
 
 function hideExportPopup() {
   state.activePopup = null;
   document.getElementById('overlay').classList.remove('active');
-  const popup = document.getElementById('exportPopup');
-  popup.classList.remove('active');
-  setTimeout(() => { popup.style.display='none'; }, 350);
+  document.getElementById('exportPopup').classList.remove('active');
 }
 
 function showShortcuts() {
