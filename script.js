@@ -73,6 +73,15 @@ function shiftDate(dateKey, delta) {
 
 function fmt2(n) { return String(n).padStart(2, '0'); }
 
+/** تنسيق الوقت بنظام 12 ساعة: "03:25 م" */
+function fmtTime12(date) {
+  let h   = date.getHours();
+  const m = fmt2(date.getMinutes());
+  const p = h >= 12 ? 'م' : 'ص';
+  h = h % 12 || 12;
+  return `${fmt2(h)}:${m} ${p}`;
+}
+
 // ==========================================
 // 3. اللوكال ستوريج
 // ==========================================
@@ -138,13 +147,17 @@ function getSprintDayData(dateKey) {
 }
 
 // ==========================================
-// 4. التايمر الرئيسي
+// 4. التايمر الرئيسي — لا يقف أبداً بعد البدء
 // ==========================================
 
-function toggleTimer() {
-  state.running ? pauseTimer() : startTimer();
-}
+/**
+ * طابور البوب آبات المنتظرة
+ * لو مرت 30 دقيقة والمستخدم لم يختر → 3 بوب آبات وراء بعض
+ */
+let popupQueue = [];    // عدد البوب آبات المنتظرة
+let popupOpen  = false; // هل البوب آب مفتوح الآن؟
 
+/** بدء التايمر — يُستدعى مرة واحدة فقط ثم لا يقف أبداً */
 function startTimer() {
   if (state.running) return;
   state.running = true;
@@ -155,30 +168,44 @@ function startTimer() {
     state.remaining--;
     updateTimerDisplay();
     updateRing();
+
     if (state.remaining <= 0) {
-      clearInterval(timerTick);
-      timerTick = null;
-      state.running = false;
-      document.body.classList.remove('running');
-      updateStartBtn();
-      onIntervalEnd();
+      // انتهى إنتيرفال — أضف للطابور واستمر فوراً
+      state.intervalNum++;
+      document.getElementById('intervalNum').textContent = state.intervalNum;
+      state.remaining = state.totalSeconds;
+      updateTimerDisplay();
+      updateRing();
+
+      popupQueue.push(Date.now());
+      playIntervalSound();
+      sendNotification();
+      drainPopupQueue();
     }
   }, 1000);
 }
 
-function pauseTimer() {
-  if (!state.running) return;
-  state.running = false;
-  document.body.classList.remove('running');
-  clearInterval(timerTick);
-  timerTick = null;
-  updateStartBtn();
+/**
+ * استنزاف الطابور — يعرض البوب آبات واحداً تلو الآخر
+ * إذا كان البوب آب مفتوحاً، انتظر حتى يُغلق
+ */
+function drainPopupQueue() {
+  if (popupOpen || popupQueue.length === 0) return;
+  popupQueue.shift();
+  showActivityPopup();
 }
 
+/** بعد البدء: زر Space لا يوقف التايمر — فقط يبدأ */
+function toggleTimer() {
+  if (!state.running) startTimer();
+}
+
+/** إعادة التعيين — فقط قبل البدء */
 function resetTimer() {
-  pauseTimer();
+  if (state.running) return;
   state.remaining   = state.totalSeconds;
   state.intervalNum = 1;
+  popupQueue        = [];
   document.getElementById('intervalNum').textContent = 1;
   updateTimerDisplay();
   updateRing();
@@ -186,28 +213,59 @@ function resetTimer() {
 }
 
 function updateStartBtn() {
-  const btn = document.getElementById('startBtn');
+  const btn   = document.getElementById('startBtn');
+  const reset = document.getElementById('resetBtn');
   if (state.running) {
-    btn.innerHTML = '⏸ إيقاف <kbd>Space</kbd>';
-  } else if (state.remaining < state.totalSeconds) {
-    btn.innerHTML = '▶ استكمال <kbd>Space</kbd>';
+    btn.innerHTML     = '⏱ يعمل';
+    btn.style.opacity = '0.65';
+    btn.style.cursor  = 'not-allowed';
+    if (reset) reset.disabled = true;
   } else {
-    btn.innerHTML = '▶ ابدأ <kbd>Space</kbd>';
+    btn.innerHTML     = '▶ ابدأ <kbd>Space</kbd>';
+    btn.style.opacity = '';
+    btn.style.cursor  = '';
+    if (reset) reset.disabled = false;
   }
 }
 
-function onIntervalEnd() {
-  playIntervalSound();
-  sendNotification();
-  showActivityPopup();
-}
+function onIntervalEnd() { /* لم يعد يُستخدم مباشرة */ }
 
-/* Page Visibility API */
+/**
+ * Page Visibility API — التايمر يستمر حتى خارج التبويب
+ * نحسب الوقت المنقضي عند العودة بدلاً من الإيقاف
+ */
+let _hiddenAt = null;
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    if (state.running) { pauseTimer(); state._wasRunning = true; }
+    _hiddenAt = Date.now();
   } else {
-    if (state._wasRunning) { state._wasRunning = false; startTimer(); }
+    if (_hiddenAt !== null && state.running) {
+      const elapsed = Math.floor((Date.now() - _hiddenAt) / 1000);
+      _hiddenAt = null;
+
+      let remaining = state.remaining - elapsed;
+      let extra     = 0;
+
+      while (remaining <= 0) {
+        extra++;
+        remaining += state.totalSeconds;
+        state.intervalNum++;
+      }
+
+      state.remaining = remaining;
+      document.getElementById('intervalNum').textContent = state.intervalNum;
+      updateTimerDisplay();
+      updateRing();
+
+      if (extra > 0) {
+        for (let i = 0; i < extra; i++) popupQueue.push(Date.now());
+        playIntervalSound();
+        sendNotification();
+        drainPopupQueue();
+      }
+    }
+    _hiddenAt = null;
   }
 });
 
@@ -240,7 +298,21 @@ function updateClock() {
 // ==========================================
 
 function showActivityPopup() {
+  popupOpen = true;
   state.activePopup = 'activity';
+
+  const pending  = popupQueue.length;
+  const subtitle = document.getElementById('popupPending');
+  if (subtitle) {
+    if (pending > 0) {
+      subtitle.textContent = `⚠️ ${pending + 1} إنتيرفال انتهت — اختر للأول`;
+      subtitle.className   = 'urgent';
+    } else {
+      subtitle.textContent = 'انتهى إنتيرفال 10 دقائق!';
+      subtitle.className   = '';
+    }
+  }
+
   document.getElementById('overlay').classList.add('active');
   const popup = document.getElementById('popup');
   popup.style.display = 'block';
@@ -250,18 +322,23 @@ function showActivityPopup() {
 }
 
 function hideActivityPopup() {
+  popupOpen = false;
   state.activePopup = null;
   document.getElementById('overlay').classList.remove('active');
   const popup = document.getElementById('popup');
   popup.classList.remove('active');
-  setTimeout(() => { popup.style.display = 'none'; }, 350);
+  setTimeout(() => {
+    popup.style.display = 'none';
+    // بعد إغلاق البوب آب، شغّل التالي من الطابور
+    drainPopupQueue();
+  }, 350);
 }
 
 function selectActivity(activityName, durationMinutes = 10) {
   const now       = new Date();
-  const endTime   = fmt2(now.getHours()) + ':' + fmt2(now.getMinutes());
+  const endTime   = fmtTime12(now);
   const startD    = new Date(now.getTime() - durationMinutes * 60000);
-  const startTime = fmt2(startD.getHours()) + ':' + fmt2(startD.getMinutes());
+  const startTime = fmtTime12(startD);
 
   state.currentSession.push({
     activity:  activityName,
@@ -275,14 +352,8 @@ function selectActivity(activityName, durationMinutes = 10) {
   saveTodayData();
   renderRecent();
   updateGoalBar();
-
-  // بدء إنتيرفال جديد
-  state.remaining   = state.totalSeconds;
-  state.intervalNum++;
-  document.getElementById('intervalNum').textContent = state.intervalNum;
-  updateTimerDisplay();
-  updateRing();
-  startTimer();
+  hideActivityPopup();
+  // ملاحظة: التايمر يستمر — لا نستدعي startTimer هنا
 }
 
 // ==========================================
@@ -579,6 +650,31 @@ function updateGoalDisplay() {
 }
 
 // ==========================================
+// 9-B. التايم لاين القابل للطي
+// ==========================================
+
+let timelineCollapsed = false;
+
+function setupTimelineToggle() {
+  const btn = document.getElementById('timelineToggleBtn');
+  const hdr = document.getElementById('timelineToggle');
+  if (!btn) return;
+
+  const doToggle = () => {
+    timelineCollapsed = !timelineCollapsed;
+    const tl   = document.getElementById('timeline');
+    const icon = document.getElementById('timelineToggleIcon');
+    const lbl  = document.getElementById('timelineToggleLabel');
+    tl.classList.toggle('collapsed', timelineCollapsed);
+    icon.textContent = timelineCollapsed ? '▼' : '▲';
+    lbl.textContent  = timelineCollapsed ? 'توسيع' : 'طي';
+  };
+
+  btn.addEventListener('click', e => { e.stopPropagation(); doToggle(); });
+  hdr.addEventListener('click', doToggle);
+}
+
+// ==========================================
 // 10. الستريك والسجل
 // ==========================================
 
@@ -801,9 +897,9 @@ function sprintSave() {
   sprintPause();
 
   const now       = new Date();
-  const endTime   = fmt2(now.getHours())+':'+fmt2(now.getMinutes());
+  const endTime   = fmtTime12(now);
   const startD    = new Date(now.getTime() - sprint.elapsed*1000);
-  const startTime = fmt2(startD.getHours())+':'+fmt2(startD.getMinutes());
+  const startTime = fmtTime12(startD);
 
   const session = {
     start:    startTime,
@@ -1092,8 +1188,12 @@ function setupKeyboard() {
 
     /* ========= لا بوب آب مفتوح ========= */
 
-    // Space — التايمر الرئيسي
-    if (e.code==='Space'||e.key===' ') { e.preventDefault(); toggleTimer(); return; }
+    // Space — يبدأ التايمر فقط، لا يوقفه
+    if (e.code==='Space'||e.key===' ') {
+      e.preventDefault();
+      if (!state.running) startTimer();
+      return;
+    }
 
     // Alt+رقم — التنقل
     if (e.altKey) {
@@ -1113,8 +1213,8 @@ function setupKeyboard() {
       }
     }
 
-    // R — ريست التايمر الرئيسي
-    if (e.key==='r'||e.key==='R') { resetTimer(); return; }
+    // R — ريست (فقط قبل البدء)
+    if (e.key==='r'||e.key==='R') { if (!state.running) resetTimer(); return; }
 
     // Q — إضافة سريعة
     if (e.key==='q'||e.key==='Q') { showQuickAdd(); return; }
@@ -1255,10 +1355,11 @@ function setupEventListeners() {
   document.getElementById('closeShortcuts').addEventListener('click', hideShortcuts);
   document.getElementById('shortcutsOverlay').addEventListener('click', hideShortcuts);
 
-  /* ---- الأوفرلاي ---- */
+  /* ---- الأوفرلاي — بوب آب النشاط إجباري لا يُغلق بالنقر ---- */
   document.getElementById('overlay').addEventListener('click', () => {
     if (state.activePopup==='quick')  { hideQuickAdd();    return; }
     if (state.activePopup==='export') { hideExportPopup(); return; }
+    // state.activePopup === 'activity' → لا نغلقه، إجباري
   });
 
   /* ---- ألوان أزرار النشاط ---- */
@@ -1297,6 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   setupKeyboard();
   setupSprintDrag();
+  setupTimelineToggle();
   updateTimerDisplay();
   updateRing();
   updateSprintDisplay();
