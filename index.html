@@ -106,7 +106,7 @@
         </div>
       </div>
       <div class="controls">
-        <button class="ctrl-btn reset" id="resetBtn">↺ <kbd>R</kbd></button>
+        <button class="ctrl-btn reset" id="resetBtn" title="إعادة تعيين [R] — يعمل فقط قبل البدء">↺ <kbd>R</kbd></button>
         <button class="ctrl-btn main" id="startBtn">▶ ابدأ <kbd>Space</kbd></button>
         <button class="ctrl-btn quick" id="quickAddBtn">+ سريع <kbd>Q</kbd></button>
       </div>
@@ -165,7 +165,13 @@
       </div>
     </div>
     <div class="timeline-section">
-      <h3>التايم لاين</h3>
+      <div class="timeline-header" id="timelineToggle">
+        <h3>التايم لاين</h3>
+        <button class="timeline-toggle-btn" id="timelineToggleBtn">
+          <span id="timelineToggleIcon">▲</span>
+          <span id="timelineToggleLabel">طي</span>
+        </button>
+      </div>
       <div class="timeline" id="timeline">
         <p class="empty-msg">لا توجد بيانات لهذا اليوم</p>
       </div>
@@ -209,7 +215,7 @@
     <div class="popup-header">
       <div class="popup-icon">⏰</div>
       <h2>ماذا كنت تفعل؟</h2>
-      <p>انتهى إنتيرفال 10 دقائق!</p>
+      <p id="popupPending">انتهى إنتيرفال 10 دقائق!</p>
     </div>
     <div class="activity-grid">
       <button class="act-btn" data-activity="دراسة"   data-color="#4ade80">📚 دراسة   <kbd>1</kbd></button>
