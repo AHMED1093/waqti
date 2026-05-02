@@ -335,8 +335,32 @@ canvas { max-width:100%; }
 .legend-item { display:flex; align-items:center; gap:5px; font-size:.72rem; color:var(--text2); }
 .legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 
-.timeline-section h3 { font-size:.9rem; color:var(--text2); font-weight:700; margin-bottom:10px; }
-.timeline { display:flex; flex-direction:column; gap:5px; }
+.timeline-section h3 { font-size:.9rem; color:var(--text2); font-weight:700; }
+.timeline-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:10px; cursor:pointer;
+}
+.timeline-toggle-btn {
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text2); font-family:'Cairo',sans-serif;
+  font-size:.72rem; font-weight:700;
+  padding:4px 10px; border-radius:7px; cursor:pointer;
+  display:flex; align-items:center; gap:5px; transition:var(--tr);
+}
+.timeline-toggle-btn:hover { background:var(--border); color:var(--text); }
+
+.timeline {
+  display:flex; flex-direction:column; gap:5px;
+  overflow:hidden; transition:max-height .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  max-height:2000px; opacity:1;
+}
+.timeline.collapsed { max-height:0; opacity:0; pointer-events:none; }
+
+/* زر ريست معطّل أثناء الشغل */
+.ctrl-btn.reset:disabled {
+  opacity:0.35; cursor:not-allowed;
+}
+.ctrl-btn.reset:disabled:hover { background:var(--surface2); transform:none; }
 
 .tl-item {
   display:flex; align-items:center; gap:10px;
@@ -400,6 +424,7 @@ canvas { max-width:100%; }
 @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
 .popup-header h2 { font-size:1.2rem; font-weight:900; margin-bottom:3px; }
 .popup-header p  { color:var(--text3); font-size:.85rem; }
+.popup-header p.urgent { color:var(--amber); font-weight:700; }
 
 .activity-grid {
   display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;
