@@ -324,13 +324,21 @@ function showActivityPopup() {
 function hideActivityPopup() {
   popupOpen = false;
   state.activePopup = null;
-  document.getElementById('overlay').classList.remove('active');
-  const popup = document.getElementById('popup');
+
+  const popup   = document.getElementById('popup');
+  const overlay = document.getElementById('overlay');
+
   popup.classList.remove('active');
+
   setTimeout(() => {
     popup.style.display = 'none';
-    // بعد إغلاق البوب آب، شغّل التالي من الطابور
-    drainPopupQueue();
+
+    // إذا في طابور، ابقِ الأوفرلاي وافتح البوب آب التالي مباشرة
+    if (popupQueue.length > 0) {
+      drainPopupQueue(); // الأوفرلاي يبقى active
+    } else {
+      overlay.classList.remove('active'); // لا يوجد طابور — أغلق الأوفرلاي
+    }
   }, 350);
 }
 
