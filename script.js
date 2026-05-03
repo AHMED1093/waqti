@@ -337,6 +337,16 @@ function hideActivityPopup() {
 }
 
 function selectActivity(activityName, durationMinutes = 10) {
+  // ===== ضربة الضمير: اعترض "تسخيت" =====
+  if (activityName === 'تسخيت') {
+    showGuiltPopup(durationMinutes);
+    return;
+  }
+  _commitActivity(activityName, durationMinutes);
+}
+
+/** تسجيل النشاط فعلياً بعد المرور من ضربة الضمير أو مباشرةً */
+function _commitActivity(activityName, durationMinutes = 10) {
   const now       = new Date();
   const endTime   = fmtTime12(now);
   const startD    = new Date(now.getTime() - durationMinutes * 60000);
@@ -355,7 +365,6 @@ function selectActivity(activityName, durationMinutes = 10) {
   renderRecent();
   updateGoalBar();
   hideActivityPopup();
-  // ملاحظة: التايمر يستمر — لا نستدعي startTimer هنا
 }
 
 // ==========================================
@@ -1193,7 +1202,8 @@ function setupKeyboard() {
     if (e.altKey) {
       if (e.key==='1') { e.preventDefault(); switchTab('timer');     return; }
       if (e.key==='2') { e.preventDefault(); switchTab('dashboard'); return; }
-      if (e.key==='3') { e.preventDefault(); switchTab('history');   return; }
+      if (e.key==='3') { e.preventDefault(); switchTab('plan');      return; }
+      if (e.key==='4') { e.preventDefault(); switchTab('history');   return; }
     }
 
     // أسهم — التنقل بين أيام الداش بورد
@@ -1206,6 +1216,34 @@ function setupKeyboard() {
         return;
       }
     }
+
+    // ======== اختصارات صفحة الخطة ========
+    if (document.getElementById('page-plan').classList.contains('active')) {
+      // أسهم: التنقل بين أيام الخطة
+      if (e.key==='ArrowLeft')  { e.preventDefault(); planState.viewDate=shiftDate(planState.viewDate,-1); renderPlanPage(); return; }
+      if (e.key==='ArrowRight') { e.preventDefault(); planState.viewDate=shiftDate(planState.viewDate,+1); renderPlanPage(); return; }
+
+      // N — إضافة مادة جديدة
+      if ((e.key==='n'||e.key==='N') && !state.activePopup) { e.preventDefault(); openPlanPopup(); return; }
+
+      // . أو Delete — رجوع لليوم الحالي
+      if (e.key==='.'||e.key==='Delete') { e.preventDefault(); planState.viewDate=todayKey(); renderPlanPage(); return; }
+
+      // أرقام 1-9: تفعيل/إلغاء الموضوع رقم N في اليوم الحالي (كل المواضيع مرتبة)
+      if (e.key>='1' && e.key<='9' && !state.activePopup) {
+        e.preventDefault();
+        const idx   = parseInt(e.key) - 1;
+        const data  = getPlanData(planState.viewDate);
+        // اجمع كل المواضيع مرتبة
+        let allTopics = [];
+        data.forEach(s => s.topics.forEach(t => allTopics.push({ subjectId:s.id, topicId:t.id })));
+        if (allTopics[idx]) {
+          toggleTopic(allTopics[idx].subjectId, allTopics[idx].topicId);
+        }
+        return;
+      }
+    }
+    // =========================================
 
     // R — ريست (فقط قبل البدء)
     if (e.key==='r'||e.key==='R') { if (!state.running) resetTimer(); return; }
@@ -1900,80 +1938,75 @@ function showPlanPopup() {
   state.activePopup = 'plan';
   document.getElementById('overlay').classList.add('active');
   document.getElementById('planPopup').classList.add('active');
-  document.getElementById('planSubjectName').focus();
+  setTimeout(() => document.getElementById('planSubjectName').focus(), 50);
 }
 
 function hidePlanPopup() {
   state.activePopup = null;
   document.getElementById('overlay').classList.remove('active');
   document.getElementById('planPopup').classList.remove('active');
-  document.getElementById('planColorOptions').classList.remove('open');
+}
+
+/* أسماء الألوان للعرض */
+const COLOR_NAMES = {
+  '#6c63ff': 'بنفسجي',
+  '#4ade80': 'أخضر',
+  '#60a5fa': 'أزرق',
+  '#f59e0b': 'ذهبي',
+  '#f43f5e': 'أحمر',
+  '#a78bfa': 'ليلكي',
+  '#22d3ee': 'سماوي',
+  '#f97316': 'برتقالي',
+};
+
+function setSelectedColor(color) {
+  planState.selectedColor = color;
+  document.querySelectorAll('.plan-color-choice').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === color);
+  });
+  const preview = document.getElementById('planColorPreview');
+  const name    = document.getElementById('planColorName');
+  if (preview) preview.style.background = color;
+  if (name)    name.textContent = COLOR_NAMES[color] || color;
 }
 
 // ==========================================
-// ربط الأحداث — Plan Events
+// ربط الأحداث — Plan Events (كيبورد كامل)
 // ==========================================
 
 function setupPlanEvents() {
 
-  // التنقل بين الأيام
+  /* ---- التنقل بين الأيام ---- */
   document.getElementById('planPrevDay').addEventListener('click', () => {
-    planState.viewDate = shiftDate(planState.viewDate, -1);
-    renderPlanPage();
+    planState.viewDate = shiftDate(planState.viewDate, -1); renderPlanPage();
   });
   document.getElementById('planNextDay').addEventListener('click', () => {
-    planState.viewDate = shiftDate(planState.viewDate, +1);
-    renderPlanPage();
+    planState.viewDate = shiftDate(planState.viewDate, +1); renderPlanPage();
   });
   document.getElementById('planGoToday').addEventListener('click', () => {
-    planState.viewDate = todayKey();
-    renderPlanPage();
+    planState.viewDate = todayKey(); renderPlanPage();
   });
 
-  // فتح بوب آب الإضافة
+  /* ---- فتح البوب آب ---- */
   document.getElementById('planOpenAdd').addEventListener('click', () => openPlanPopup());
 
-  // حفظ
-  document.getElementById('planSaveSubject').addEventListener('click', savePlanSubject);
-  document.getElementById('planSubjectName').addEventListener('keydown', e => {
-    if (e.key==='Enter') savePlanSubject();
+  /* ---- أزرار اختيار اللون (كليك) ---- */
+  document.querySelectorAll('.plan-color-choice').forEach(btn => {
+    btn.addEventListener('click', () => setSelectedColor(btn.dataset.color));
   });
 
-  // إغلاق
+  /* ---- أزرار الأيام (كليك) ---- */
+  document.querySelectorAll('.plan-day-btn').forEach(btn => {
+    btn.addEventListener('click', () => togglePlanDay(parseInt(btn.dataset.day)));
+  });
+
+  /* ---- إغلاق ---- */
   document.getElementById('closePlanPopup').addEventListener('click', hidePlanPopup);
 
-  // أزرار الأيام
-  document.querySelectorAll('.plan-day-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const day = parseInt(btn.dataset.day);
-      if (planState.selectedDays.includes(day)) {
-        planState.selectedDays = planState.selectedDays.filter(d => d !== day);
-      } else {
-        planState.selectedDays.push(day);
-      }
-      btn.classList.toggle('active', planState.selectedDays.includes(day));
-    });
-  });
+  /* ---- حفظ ---- */
+  document.getElementById('planSaveSubject').addEventListener('click', savePlanSubject);
 
-  // منتقي اللون
-  document.getElementById('planSelectedColor').addEventListener('click', e => {
-    e.stopPropagation();
-    document.getElementById('planColorOptions').classList.toggle('open');
-  });
-  document.querySelectorAll('.plan-col').forEach(el => {
-    el.addEventListener('click', () => {
-      planState.selectedColor = el.dataset.color;
-      document.getElementById('planSelectedColor').style.background = planState.selectedColor;
-      document.querySelectorAll('.plan-col').forEach(c => c.classList.remove('selected'));
-      el.classList.add('selected');
-      document.getElementById('planColorOptions').classList.remove('open');
-    });
-  });
-  document.addEventListener('click', () => {
-    document.getElementById('planColorOptions').classList.remove('open');
-  });
-
-  // إضافة موضوع في البوب آب
+  /* ---- إضافة موضوع ---- */
   const addTopicInPopup = () => {
     const input = document.getElementById('planTopicInput');
     const text  = input.value.trim();
@@ -1984,10 +2017,121 @@ function setupPlanEvents() {
     input.focus();
   };
   document.getElementById('planAddTopicBtn').addEventListener('click', addTopicInPopup);
-  document.getElementById('planTopicInput').addEventListener('keydown', e => {
-    if (e.key==='Enter') { e.preventDefault(); addTopicInPopup(); }
+
+  /* ---- كيبورد داخل البوب آب ---- */
+  document.getElementById('planPopup').addEventListener('keydown', e => {
+    if (state.activePopup !== 'plan') return;
+    const tag = document.activeElement.id;
+
+    /* Ctrl+Enter — حفظ من أي مكان */
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault(); savePlanSubject(); return;
+    }
+
+    /* Enter في حقل اسم المادة — ينتقل لحقل المواضيع */
+    if (e.key === 'Enter' && tag === 'planSubjectName') {
+      e.preventDefault();
+      document.getElementById('planTopicInput').focus();
+      return;
+    }
+
+    /* Enter في حقل المواضيع — يضيف الموضوع */
+    if (e.key === 'Enter' && tag === 'planTopicInput') {
+      e.preventDefault(); addTopicInPopup(); return;
+    }
+
+    /* Backspace في حقل المواضيع الفارغ — يحذف آخر موضوع */
+    if (e.key === 'Backspace' && tag === 'planTopicInput') {
+      const input = document.getElementById('planTopicInput');
+      if (input.value === '' && planState.pendingTopics.length > 0) {
+        e.preventDefault();
+        planState.pendingTopics.pop();
+        renderPopupTopics();
+      }
+      return;
+    }
+
+    /* إذا الفوكس مش في إن بوت — اختصارات الحقول */
+    const inInput = ['planSubjectName','planTopicInput'].includes(tag);
+    if (inInput) return;
+
+    /* F — فوكس على حقل الاسم */
+    if (e.key==='f'||e.key==='F') { e.preventDefault(); document.getElementById('planSubjectName').focus(); return; }
+
+    /* T — فوكس على حقل المواضيع */
+    if (e.key==='t'||e.key==='T') { e.preventDefault(); document.getElementById('planTopicInput').focus(); return; }
+
+    /* أرقام 1-8 — اختيار لون */
+    if (e.key>='1' && e.key<='8') {
+      e.preventDefault();
+      const choices = document.querySelectorAll('.plan-color-choice');
+      const idx     = parseInt(e.key) - 1;
+      if (choices[idx]) setSelectedColor(choices[idx].dataset.color);
+      return;
+    }
+
+    /* A-G-K — تبديل أيام الأسبوع */
+    const dayMap = { 'a':'0','A':'0', 'b':'1','B':'1', 'c':'2','C':'2',
+                     'd':'3','D':'3', 'g':'5','G':'5', 'k':'6','K':'6' };
+    if (dayMap[e.key] !== undefined) {
+      e.preventDefault();
+      togglePlanDay(parseInt(dayMap[e.key]));
+      return;
+    }
+    /* F2 = يوم الخميس (يوم 4) — F محجوز */
+    if (e.key === 'F2') { e.preventDefault(); togglePlanDay(4); return; }
+
+    /* V — تحديد/إلغاء كل الأيام */
+    if (e.key==='v'||e.key==='V') {
+      e.preventDefault();
+      if (planState.selectedDays.length === 7) {
+        planState.selectedDays = [];
+      } else {
+        planState.selectedDays = [0,1,2,3,4,5,6];
+      }
+      document.querySelectorAll('.plan-day-btn').forEach(btn => {
+        btn.classList.toggle('active', planState.selectedDays.includes(parseInt(btn.dataset.day)));
+      });
+      return;
+    }
   });
 }
+
+function togglePlanDay(day) {
+  if (planState.selectedDays.includes(day)) {
+    planState.selectedDays = planState.selectedDays.filter(d => d !== day);
+  } else {
+    planState.selectedDays.push(day);
+  }
+  document.querySelectorAll('.plan-day-btn').forEach(btn => {
+    btn.classList.toggle('active', planState.selectedDays.includes(parseInt(btn.dataset.day)));
+  });
+}
+
+/* تحديث openPlanPopup ليستخدم setSelectedColor */
+function openPlanPopup(existingSubject = null) {
+  planState.editingSubject = existingSubject;
+  planState.pendingTopics  = existingSubject
+    ? existingSubject.topics.map(t => ({ ...t }))
+    : [];
+  planState.selectedDays  = existingSubject ? [...existingSubject.days] : [];
+
+  document.getElementById('planSubjectName').value = existingSubject ? existingSubject.name : '';
+  document.getElementById('planTopicInput').value  = '';
+  document.getElementById('planPopupSubtitle').textContent =
+    existingSubject ? `تعديل: ${existingSubject.name}` : 'أضف مادة ومواضيعها لهذا اليوم';
+
+  setSelectedColor(existingSubject ? existingSubject.color : '#6c63ff');
+
+  document.querySelectorAll('.plan-day-btn').forEach(btn => {
+    btn.classList.toggle('active', planState.selectedDays.includes(parseInt(btn.dataset.day)));
+  });
+
+  renderPopupTopics();
+  showPlanPopup();
+}
+
+
 
 // ==========================================
 // تحديث switchTab ليدعم تاب الخطة
@@ -2003,17 +2147,152 @@ window.switchTab = function(tabName) {
   }
 };
 
-// تحديث الكيبورد: Alt+3 = plan، Alt+4 = history
+// ==========================================
+// 💀 نظام ضربة الضمير — Guilt System
+// ==========================================
+
+const GUILT_MSGS = [
+  'اليوتيوب والتيك توك ما راح يذاكرون عنك 🙂',
+  'كل دقيقة تسخيت = دقيقة دراسة ضايعة من وقتك اللي ما يرجع ⏳',
+  'الناجحين الحين جالسين يذاكرون، وأنت؟ 🤔',
+  'الاستراحة كانت قبل شوي، هذا تسخيت مو استراحة 😮‍💨',
+  'تخيّل نفسك بعد الامتحان — هل تتمنى إنك ذاكرت الحين؟ 📝',
+  'عقلك يبي تسخيت لأنه يخاف من الصعوبة، لا تسمع له 💪',
+  'مريت على هذا الموضوع عشر مرات وما ذاكرته… الحين وقته 📖',
+  'ثلاث دقائق دراسة أفضل من صفر دقيقة 🎯',
+];
+
+const GUILT_MOTIVATE = [
+  '💡 كل عالم كبير كان يوماً طالباً يجلس ويذاكر رغم صعوبة الموضوع — الفرق أنه ما استسلم.',
+  '🔥 الإنجاز ما يجي من الراحة، يجي من اللحظات اللي قررت فيها إنك تكمل حتى لو صعب.',
+  '⚡ دماغك يقدر — هو بس يبي إذن منك إنك تبدأ. ابدأ الحين.',
+  '🏆 الفرق بين الناجح والفاشل مو الذكاء — هو قرار إنك تواصل وما توقف.',
+  '🌙 في الليل لما تنام، هل تبي تقول "ذاكرت" ولا "ندمت"؟ القرار الحين.',
+  '📚 كل صفحة تذاكرها هي صفحة أقل قلق قبل الامتحان — استثمر الحين.',
+  '🎯 ما يكون الإنسان عظيماً بما يفعله لما يشتهي — بل بما يفعله لما لا يشتهي.',
+  '💪 الانضباط هو اختيار إنك تختار ما تريده غداً على ما تشتهيه الحين.',
+  '🚀 كل دقيقة دراسة الحين = ثقة إضافية يوم الامتحان. وقتك يُبنى الحين.',
+  '✨ مو لازم تحب الدراسة — بس لازم تحترم مستقبلك. ذاكر.',
+];
+
+const guilt = {
+  countdown:    10,
+  tickId:       null,
+  pendingDur:   10,     // المدة اللي كانت ستُسجَّل
+};
+
+function showGuiltPopup(durationMinutes) {
+  guilt.pendingDur = durationMinutes;
+  guilt.countdown  = 10;
+
+  // رسالة عشوائية
+  const msg      = GUILT_MSGS[Math.floor(Math.random() * GUILT_MSGS.length)];
+  const motivate = GUILT_MOTIVATE[Math.floor(Math.random() * GUILT_MOTIVATE.length)];
+  document.getElementById('guiltMsg').textContent          = msg;
+  document.getElementById('guiltMotivateText').textContent = motivate;
+  document.getElementById('guiltCountdown').textContent    = 10;
+  document.getElementById('guiltArc').setAttribute('stroke-dashoffset', 0);
+
+  // إعادة تشغيل أنيميشن الآيقونة
+  const icon = document.getElementById('guiltIcon');
+  icon.style.animation = 'none';
+  requestAnimationFrame(() => { icon.style.animation = ''; });
+
+  state.activePopup = 'guilt';
+  document.getElementById('guiltPopup').classList.add('active');
+
+  playGuiltSound();
+  startGuiltCountdown();
+}
+
+function hideGuiltPopup() {
+  clearInterval(guilt.tickId);
+  guilt.tickId = null;
+  document.getElementById('guiltPopup').classList.remove('active');
+  state.activePopup = 'activity'; // ارجع للبوب آب الأصلي
+}
+
+function startGuiltCountdown() {
+  clearInterval(guilt.tickId);
+  const totalDash = 201.1; // 2π×32
+
+  guilt.tickId = setInterval(() => {
+    guilt.countdown--;
+    document.getElementById('guiltCountdown').textContent = guilt.countdown;
+
+    // تقليص الحلقة
+    const offset = ((10 - guilt.countdown) / 10) * totalDash;
+    document.getElementById('guiltArc').setAttribute('stroke-dashoffset', offset);
+
+    // نبضة صوتية كل ثانية عندما يقترب
+    if (guilt.countdown <= 3) playGuiltTick();
+
+    if (guilt.countdown <= 0) {
+      // انتهى الوقت — سجّل التسخيت تلقائياً
+      clearInterval(guilt.tickId);
+      guilt.tickId = null;
+      confirmGuilt();
+    }
+  }, 1000);
+}
+
+/** سجّل التسخيت */
+function confirmGuilt() {
+  clearInterval(guilt.tickId);
+  guilt.tickId = null;
+  document.getElementById('guiltPopup').classList.remove('active');
+  state.activePopup = 'activity';
+  _commitActivity('تسخيت', guilt.pendingDur);
+}
+
+function playGuiltSound() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    [440, 330].forEach((f, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, now + i * 0.18);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.7, now + i * 0.18 + 0.25);
+      gain.gain.setValueAtTime(0.09, now + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.28);
+      osc.start(now + i * 0.18);
+      osc.stop(now + i * 0.18 + 0.3);
+    });
+  } catch(e) {}
+}
+
+function playGuiltTick() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.07, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.start(now); osc.stop(now + 0.09);
+  } catch(e) {}
+}
+
+/* ---- ربط أحداث بوب آب الضمير ---- */
+function setupGuiltEvents() {
+  document.getElementById('guiltConfirmBtn').addEventListener('click', confirmGuilt);
+}
+
+/* ---- الكيبورد داخل بوب آب الضمير ---- */
 document.addEventListener('keydown', e => {
-  if (!e.altKey) return;
-  if (e.key === '3') { e.preventDefault(); switchTab('plan');    }
-  if (e.key === '4') { e.preventDefault(); switchTab('history'); }
+  if (state.activePopup !== 'guilt') return;
+  if (e.key === 'Enter' || e.code === 'Space') { e.preventDefault(); confirmGuilt(); }
 });
 
-// ==========================================
-// تهيئة الخطة عند تحميل الصفحة
-// ==========================================
 
+
+// تهيئة الضمير
 document.addEventListener('DOMContentLoaded', () => {
-  setupPlanEvents();
-});v
+  setupGuiltEvents();
+});
