@@ -56,8 +56,16 @@
         <div class="sp-row"><kbd>Alt+2</kbd><span>الداش بورد</span></div>
         <div class="sp-row"><kbd>Alt+3</kbd><span>الخطة اليومية</span></div>
         <div class="sp-row"><kbd>Alt+4</kbd><span>السجل</span></div>
-        <div class="sp-row"><kbd>←</kbd><span>يوم سابق (داش بورد)</span></div>
-        <div class="sp-row"><kbd>→</kbd><span>يوم تالي (داش بورد)</span></div>
+        <div class="sp-row"><kbd>←</kbd><span>يوم سابق (داش بورد / خطة)</span></div>
+        <div class="sp-row"><kbd>→</kbd><span>يوم تالي (داش بورد / خطة)</span></div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">📋 الخطة اليومية</div>
+        <div class="sp-row"><kbd>N</kbd><span>إضافة مادة جديدة</span></div>
+        <div class="sp-row"><kbd>←  →</kbd><span>التنقل بين الأيام</span></div>
+        <div class="sp-row"><kbd>.</kbd><span>رجوع لليوم الحالي</span></div>
+        <div class="sp-row"><kbd>1-9</kbd><span>تفعيل موضوع رقم N</span></div>
+        <div class="sp-row"><kbd>Esc</kbd><span>إغلاق بوب آب</span></div>
       </div>
       <div class="sp-section">
         <div class="sp-title">📋 البوب آب</div>
@@ -208,16 +216,16 @@
     <!-- رأس الصفحة: التنقل بين الأيام -->
     <div class="plan-topbar">
       <div class="plan-nav">
-        <button class="icon-btn" id="planPrevDay">◀</button>
+        <button class="icon-btn" id="planPrevDay">◀ <kbd>←</kbd></button>
         <div class="plan-date-info">
           <span class="plan-date-label" id="planDateLabel">اليوم</span>
           <span class="plan-date-sub" id="planDateSub"></span>
         </div>
-        <button class="icon-btn" id="planNextDay">▶</button>
+        <button class="icon-btn" id="planNextDay"><kbd>→</kbd> ▶</button>
       </div>
       <div class="plan-topbar-actions">
-        <button class="icon-btn" id="planGoToday">اليوم</button>
-        <button class="plan-add-btn" id="planOpenAdd">+ إضافة مادة</button>
+        <button class="icon-btn" id="planGoToday">اليوم <kbd>.</kbd></button>
+        <button class="plan-add-btn" id="planOpenAdd">+ إضافة مادة <kbd>N</kbd></button>
       </div>
     </div>
 
@@ -250,60 +258,72 @@
   <!-- ====== بوب آب إضافة مادة ====== -->
   <div class="popup plan-popup" id="planPopup">
     <div class="popup-header">
-      <h2>📚 إضافة مادة</h2>
-      <p>أضف مادة ومواضيعها لهذا اليوم</p>
+      <h2>📚 إضافة مادة جديدة</h2>
+      <p id="planPopupSubtitle">أضف مادة ومواضيعها لهذا اليوم</p>
     </div>
 
     <div class="plan-form">
-      <!-- اسم المادة -->
+
+      <!-- ① اسم المادة -->
       <div class="plan-field">
-        <label class="plan-label">اسم المادة</label>
-        <div class="plan-subject-input-row">
-          <input type="text" id="planSubjectName" class="plan-input" placeholder="مثال: رياضيات" maxlength="40"/>
-          <div class="plan-color-picker" id="planColorPicker">
-            <div class="plan-color-dot" id="planSelectedColor" style="background:#6c63ff"></div>
-            <div class="plan-color-options" id="planColorOptions">
-              <span class="plan-col" data-color="#6c63ff" style="background:#6c63ff"></span>
-              <span class="plan-col" data-color="#4ade80" style="background:#4ade80"></span>
-              <span class="plan-col" data-color="#60a5fa" style="background:#60a5fa"></span>
-              <span class="plan-col" data-color="#f59e0b" style="background:#f59e0b"></span>
-              <span class="plan-col" data-color="#f43f5e" style="background:#f43f5e"></span>
-              <span class="plan-col" data-color="#a78bfa" style="background:#a78bfa"></span>
-              <span class="plan-col" data-color="#22d3ee" style="background:#22d3ee"></span>
-              <span class="plan-col" data-color="#f97316" style="background:#f97316"></span>
-            </div>
-          </div>
+        <label class="plan-label">① اسم المادة <kbd>Tab</kbd></label>
+        <input type="text" id="planSubjectName" class="plan-input"
+               placeholder="مثال: رياضيات" maxlength="40"
+               autocomplete="off"/>
+      </div>
+
+      <!-- ② اللون -->
+      <div class="plan-field">
+        <label class="plan-label">② اللون <kbd>F</kbd> لفتح / أرقام لاختيار</label>
+        <div class="plan-color-row" id="planColorRow">
+          <button type="button" class="plan-color-choice selected" data-color="#6c63ff" data-ci="1" style="background:#6c63ff"><kbd>1</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#4ade80" data-ci="2" style="background:#4ade80"><kbd>2</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#60a5fa" data-ci="3" style="background:#60a5fa"><kbd>3</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#f59e0b" data-ci="4" style="background:#f59e0b"><kbd>4</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#f43f5e" data-ci="5" style="background:#f43f5e"><kbd>5</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#a78bfa" data-ci="6" style="background:#a78bfa"><kbd>6</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#22d3ee" data-ci="7" style="background:#22d3ee"><kbd>7</kbd></button>
+          <button type="button" class="plan-color-choice" data-color="#f97316" data-ci="8" style="background:#f97316"><kbd>8</kbd></button>
+        </div>
+        <div class="plan-color-preview">
+          <div class="plan-color-preview-dot" id="planColorPreview" style="background:#6c63ff"></div>
+          <span class="plan-color-preview-name" id="planColorName">بنفسجي</span>
         </div>
       </div>
 
-      <!-- الأيام المستهدفة -->
+      <!-- ③ الأيام -->
       <div class="plan-field">
-        <label class="plan-label">الأيام المستهدفة</label>
+        <label class="plan-label">③ أيام التكرار الأسبوعي <kbd>A</kbd>-<kbd>G</kbd> أو <kbd>V</kbd> للكل</label>
         <div class="plan-days-row" id="planDaysRow">
-          <button type="button" class="plan-day-btn" data-day="0">أحد</button>
-          <button type="button" class="plan-day-btn" data-day="1">إثن</button>
-          <button type="button" class="plan-day-btn" data-day="2">ثلا</button>
-          <button type="button" class="plan-day-btn" data-day="3">أرب</button>
-          <button type="button" class="plan-day-btn" data-day="4">خمي</button>
-          <button type="button" class="plan-day-btn" data-day="5">جمع</button>
-          <button type="button" class="plan-day-btn" data-day="6">سبت</button>
+          <button type="button" class="plan-day-btn" data-day="0">أحد<br><kbd>A</kbd></button>
+          <button type="button" class="plan-day-btn" data-day="1">إثن<br><kbd>B</kbd></button>
+          <button type="button" class="plan-day-btn" data-day="2">ثلا<br><kbd>C</kbd></button>
+          <button type="button" class="plan-day-btn" data-day="3">أرب<br><kbd>D</kbd></button>
+          <button type="button" class="plan-day-btn" data-day="4">خمي<br><kbd>F2</kbd></button>
+          <button type="button" class="plan-day-btn" data-day="5">جمع<br><kbd>G</kbd></button>
+          <button type="button" class="plan-day-btn" data-day="6">سبت<br><kbd>K</kbd></button>
         </div>
       </div>
 
-      <!-- المواضيع -->
+      <!-- ④ المواضيع -->
       <div class="plan-field">
-        <label class="plan-label">المواضيع</label>
+        <label class="plan-label">④ المواضيع — اكتب واضغط <kbd>Enter</kbd> للإضافة</label>
         <div class="plan-topics-list" id="planTopicsList"></div>
         <div class="plan-add-topic-row">
-          <input type="text" id="planTopicInput" class="plan-input" placeholder="أضف موضوعاً..." maxlength="80"/>
-          <button type="button" class="plan-add-topic-btn" id="planAddTopicBtn">+</button>
+          <input type="text" id="planTopicInput" class="plan-input"
+                 placeholder="اكتب الموضوع ثم Enter..." maxlength="80"/>
+          <button type="button" class="plan-add-topic-btn" id="planAddTopicBtn">
+            + <kbd>↵</kbd>
+          </button>
         </div>
+        <div class="plan-topic-hint">اضغط <kbd>Backspace</kbd> لحذف آخر موضوع عندما الحقل فاضي</div>
       </div>
+
     </div>
 
     <div class="plan-popup-footer">
       <button class="close-btn" id="closePlanPopup">إلغاء <kbd>Esc</kbd></button>
-      <button class="plan-save-btn" id="planSaveSubject">حفظ <kbd>↵</kbd></button>
+      <button class="plan-save-btn" id="planSaveSubject">✓ حفظ <kbd>Ctrl+↵</kbd></button>
     </div>
   </div>
 
@@ -458,6 +478,32 @@
       <button class="sw-min-btn" id="swExpand" title="توسيع [M]">▲</button>
     </div>
 
+  </div>
+
+  <!-- ====== بوب آب ضربة الضمير ====== -->
+  <div class="popup guilt-popup" id="guiltPopup">
+    <div class="guilt-icon" id="guiltIcon">😬</div>
+    <h2 class="guilt-title">تسخّت؟ 😤</h2>
+    <p class="guilt-msg" id="guiltMsg"></p>
+
+    <div class="guilt-timer-wrap">
+      <svg class="guilt-ring" viewBox="0 0 80 80">
+        <circle class="guilt-ring-bg"  cx="40" cy="40" r="32"/>
+        <circle class="guilt-ring-arc" id="guiltArc" cx="40" cy="40" r="32"
+          stroke-dasharray="201.1" stroke-dashoffset="0"/>
+      </svg>
+      <div class="guilt-countdown" id="guiltCountdown">10</div>
+    </div>
+
+    <div class="guilt-motivate-box" id="guiltMotivateBox">
+      <span class="guilt-motivate-text" id="guiltMotivateText"></span>
+    </div>
+
+    <div class="guilt-actions">
+      <button class="guilt-confirm-btn" id="guiltConfirmBtn">
+        سجّل التسخيت وكمّل <kbd>Enter</kbd>
+      </button>
+    </div>
   </div>
 
   <script src="script.js"></script>
