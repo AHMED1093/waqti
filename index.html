@@ -17,7 +17,8 @@
     <nav class="tabs">
       <button class="tab-btn active" data-tab="timer">التايمر <kbd>Alt+1</kbd></button>
       <button class="tab-btn" data-tab="dashboard">الداش بورد <kbd>Alt+2</kbd></button>
-      <button class="tab-btn" data-tab="history">السجل <kbd>Alt+3</kbd></button>
+      <button class="tab-btn" data-tab="plan">الخطة <kbd>Alt+3</kbd></button>
+      <button class="tab-btn" data-tab="history">السجل <kbd>Alt+4</kbd></button>
     </nav>
     <div class="topbar-right">
       <button class="icon-btn" id="themeToggle">🌙 <kbd>T</kbd></button>
@@ -53,7 +54,8 @@
         <div class="sp-title">🗂 التنقل</div>
         <div class="sp-row"><kbd>Alt+1</kbd><span>صفحة التايمر</span></div>
         <div class="sp-row"><kbd>Alt+2</kbd><span>الداش بورد</span></div>
-        <div class="sp-row"><kbd>Alt+3</kbd><span>السجل</span></div>
+        <div class="sp-row"><kbd>Alt+3</kbd><span>الخطة اليومية</span></div>
+        <div class="sp-row"><kbd>Alt+4</kbd><span>السجل</span></div>
         <div class="sp-row"><kbd>←</kbd><span>يوم سابق (داش بورد)</span></div>
         <div class="sp-row"><kbd>→</kbd><span>يوم تالي (داش بورد)</span></div>
       </div>
@@ -199,6 +201,111 @@
       </div>
     </div>
   </section>
+
+  <!-- ====== صفحة الخطة اليومية ====== -->
+  <section class="page" id="page-plan">
+
+    <!-- رأس الصفحة: التنقل بين الأيام -->
+    <div class="plan-topbar">
+      <div class="plan-nav">
+        <button class="icon-btn" id="planPrevDay">◀</button>
+        <div class="plan-date-info">
+          <span class="plan-date-label" id="planDateLabel">اليوم</span>
+          <span class="plan-date-sub" id="planDateSub"></span>
+        </div>
+        <button class="icon-btn" id="planNextDay">▶</button>
+      </div>
+      <div class="plan-topbar-actions">
+        <button class="icon-btn" id="planGoToday">اليوم</button>
+        <button class="plan-add-btn" id="planOpenAdd">+ إضافة مادة</button>
+      </div>
+    </div>
+
+    <!-- شريط أيام الأسبوع -->
+    <div class="plan-week-strip" id="planWeekStrip"></div>
+
+    <!-- شريط التقدم العام لليوم -->
+    <div class="plan-progress-card">
+      <div class="plan-progress-header">
+        <span class="plan-progress-title">تقدم اليوم</span>
+        <span class="plan-progress-pct" id="planProgressPct">0%</span>
+      </div>
+      <div class="plan-progress-bar">
+        <div class="plan-progress-fill" id="planProgressFill" style="width:0%"></div>
+      </div>
+      <div class="plan-progress-counts" id="planProgressCounts">لا توجد مواضيع بعد</div>
+    </div>
+
+    <!-- قائمة المواد -->
+    <div class="plan-subjects" id="planSubjects">
+      <div class="plan-empty" id="planEmpty">
+        <div class="plan-empty-icon">📋</div>
+        <div class="plan-empty-text">لا توجد خطة لهذا اليوم</div>
+        <div class="plan-empty-sub">اضغط "+ إضافة مادة" لتبدأ</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ====== بوب آب إضافة مادة ====== -->
+  <div class="popup plan-popup" id="planPopup">
+    <div class="popup-header">
+      <h2>📚 إضافة مادة</h2>
+      <p>أضف مادة ومواضيعها لهذا اليوم</p>
+    </div>
+
+    <div class="plan-form">
+      <!-- اسم المادة -->
+      <div class="plan-field">
+        <label class="plan-label">اسم المادة</label>
+        <div class="plan-subject-input-row">
+          <input type="text" id="planSubjectName" class="plan-input" placeholder="مثال: رياضيات" maxlength="40"/>
+          <div class="plan-color-picker" id="planColorPicker">
+            <div class="plan-color-dot" id="planSelectedColor" style="background:#6c63ff"></div>
+            <div class="plan-color-options" id="planColorOptions">
+              <span class="plan-col" data-color="#6c63ff" style="background:#6c63ff"></span>
+              <span class="plan-col" data-color="#4ade80" style="background:#4ade80"></span>
+              <span class="plan-col" data-color="#60a5fa" style="background:#60a5fa"></span>
+              <span class="plan-col" data-color="#f59e0b" style="background:#f59e0b"></span>
+              <span class="plan-col" data-color="#f43f5e" style="background:#f43f5e"></span>
+              <span class="plan-col" data-color="#a78bfa" style="background:#a78bfa"></span>
+              <span class="plan-col" data-color="#22d3ee" style="background:#22d3ee"></span>
+              <span class="plan-col" data-color="#f97316" style="background:#f97316"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- الأيام المستهدفة -->
+      <div class="plan-field">
+        <label class="plan-label">الأيام المستهدفة</label>
+        <div class="plan-days-row" id="planDaysRow">
+          <button type="button" class="plan-day-btn" data-day="0">أحد</button>
+          <button type="button" class="plan-day-btn" data-day="1">إثن</button>
+          <button type="button" class="plan-day-btn" data-day="2">ثلا</button>
+          <button type="button" class="plan-day-btn" data-day="3">أرب</button>
+          <button type="button" class="plan-day-btn" data-day="4">خمي</button>
+          <button type="button" class="plan-day-btn" data-day="5">جمع</button>
+          <button type="button" class="plan-day-btn" data-day="6">سبت</button>
+        </div>
+      </div>
+
+      <!-- المواضيع -->
+      <div class="plan-field">
+        <label class="plan-label">المواضيع</label>
+        <div class="plan-topics-list" id="planTopicsList"></div>
+        <div class="plan-add-topic-row">
+          <input type="text" id="planTopicInput" class="plan-input" placeholder="أضف موضوعاً..." maxlength="80"/>
+          <button type="button" class="plan-add-topic-btn" id="planAddTopicBtn">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-popup-footer">
+      <button class="close-btn" id="closePlanPopup">إلغاء <kbd>Esc</kbd></button>
+      <button class="plan-save-btn" id="planSaveSubject">حفظ <kbd>↵</kbd></button>
+    </div>
+  </div>
 
   <!-- ====== صفحة السجل ====== -->
   <section class="page" id="page-history">
