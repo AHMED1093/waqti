@@ -1402,3 +1402,618 @@ document.addEventListener('DOMContentLoaded', () => {
     Notification.requestPermission();
   }
 });
+
+// ==========================================
+// ⚡ نظام الخطة اليومية — Daily Plan System
+// ==========================================
+
+/**
+ * هيكل البيانات:
+ * waqti_plan_{dateKey} = [
+ *   {
+ *     id: "uuid",
+ *     name: "رياضيات",
+ *     color: "#6c63ff",
+ *     days: [0,1,3],        // أيام الأسبوع (0=أحد)
+ *     topics: [
+ *       { id: "uuid", text: "الفصل الأول", done: false }
+ *     ],
+ *     collapsed: false
+ *   }
+ * ]
+ *
+ * waqti_plan_templates = نفس الهيكل بدون done (للتكرار الأسبوعي)
+ */
+
+const planState = {
+  viewDate:       todayKey(),   // التاريخ المعروض
+  editingSubject: null,         // id المادة اللي تُعدَّل (null = جديدة)
+  selectedColor:  '#6c63ff',
+  selectedDays:   [],
+  pendingTopics:  [],           // مواضيع في بوب آب الإضافة قبل الحفظ
+};
+
+const DAY_NAMES = ['أحد','إثن','ثلا','أرب','خمي','جمع','سبت'];
+const DAY_NAMES_FULL = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const MONTH_NAMES = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+/* ---- مفتاح التخزين ---- */
+function planKey(dateKey) { return `waqti_plan_${dateKey}`; }
+function templateKey()    { return `waqti_plan_templates`; }
+
+/* ---- قراءة وكتابة ---- */
+function getPlanData(dateKey) {
+  const raw = localStorage.getItem(planKey(dateKey));
+  return raw ? JSON.parse(raw) : [];
+}
+
+function savePlanData(dateKey, data) {
+  localStorage.setItem(planKey(dateKey), JSON.stringify(data));
+}
+
+function getTemplates() {
+  const raw = localStorage.getItem(templateKey());
+  return raw ? JSON.parse(raw) : [];
+}
+
+function saveTemplates(templates) {
+  localStorage.setItem(templateKey(), JSON.stringify(templates));
+}
+
+/* ---- UUID بسيط ---- */
+function planUID() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* ---- يوم الأسبوع كرقم (0=أحد) من مفتاح التاريخ ---- */
+function dayOfWeek(dateKey) {
+  const [y,m,d] = dateKey.split('-').map(Number);
+  return new Date(y, m-1, d).getDay();
+}
+
+/**
+ * دمج مواضيع البيانات مع القوالب لهذا اليوم
+ * إذا المادة موجودة في القوالب وتشمل هذا اليوم
+ * وغير موجودة في بيانات اليوم → أضفها
+ */
+function mergePlanWithTemplates(dateKey) {
+  const dow       = dayOfWeek(dateKey);
+  const templates = getTemplates();
+  let   data      = getPlanData(dateKey);
+
+  templates.forEach(tmpl => {
+    if (!tmpl.days.includes(dow)) return;
+    const exists = data.find(s => s.templateId === tmpl.id);
+    if (!exists) {
+      data.push({
+        id:         planUID(),
+        templateId: tmpl.id,
+        name:       tmpl.name,
+        color:      tmpl.color,
+        days:       tmpl.days,
+        topics:     tmpl.topics.map(t => ({ id: planUID(), text: t.text, done: false })),
+        collapsed:  false,
+      });
+    }
+  });
+
+  savePlanData(dateKey, data);
+  return data;
+}
+
+/* ---- حساب التقدم ---- */
+function calcPlanProgress(data) {
+  let total = 0, done = 0;
+  data.forEach(s => {
+    s.topics.forEach(t => {
+      total++;
+      if (t.done) done++;
+    });
+  });
+  return { total, done, pct: total ? Math.round((done/total)*100) : 0 };
+}
+
+// ==========================================
+// رندر صفحة الخطة
+// ==========================================
+
+function renderPlanPage() {
+  const data = mergePlanWithTemplates(planState.viewDate);
+  renderPlanDateNav();
+  renderPlanWeekStrip();
+  renderPlanProgress(data);
+  renderPlanSubjects(data);
+}
+
+/* ---- ترويسة التاريخ ---- */
+function renderPlanDateNav() {
+  const today = todayKey();
+  const [y,m,d] = planState.viewDate.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  const dow  = date.getDay();
+
+  let label = '';
+  if (planState.viewDate === today) label = 'اليوم';
+  else if (planState.viewDate === shiftDate(today, -1)) label = 'أمس';
+  else if (planState.viewDate === shiftDate(today,  1)) label = 'غداً';
+  else label = DAY_NAMES_FULL[dow];
+
+  document.getElementById('planDateLabel').textContent = label;
+  document.getElementById('planDateSub').textContent =
+    `${d} ${MONTH_NAMES[m-1]} ${y}`;
+
+  // تعطيل زر التالي إذا كنا في المستقبل البعيد
+  document.getElementById('planNextDay').disabled = false;
+}
+
+/* ---- شريط أيام الأسبوع (7 أيام من اليوم) ---- */
+function renderPlanWeekStrip() {
+  const strip = document.getElementById('planWeekStrip');
+  strip.innerHTML = '';
+  const today = todayKey();
+
+  // نبدأ من الأحد الأقرب (بداية الأسبوع الحالي)
+  const [ty,tm,td] = today.split('-').map(Number);
+  const todayDate  = new Date(ty, tm-1, td);
+  const startOfWeek = new Date(todayDate);
+  startOfWeek.setDate(todayDate.getDate() - todayDate.getDay()); // الأحد
+
+  for (let i = 0; i < 7; i++) {
+    const d    = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    const key  = localDateKey(d);
+    const dow  = d.getDay();
+    const hasPlan = getPlanData(key).length > 0 || (() => {
+      const tmplsForDay = getTemplates().filter(t => t.days.includes(dow));
+      return tmplsForDay.length > 0;
+    })();
+
+    const btn = document.createElement('div');
+    btn.className = 'plan-week-day';
+    if (key === today)             btn.classList.add('today');
+    if (key === planState.viewDate) btn.classList.add('active');
+    if (hasPlan)                   btn.classList.add('has-plan');
+
+    btn.innerHTML = `
+      <span class="plan-wd-name">${DAY_NAMES[dow]}</span>
+      <span class="plan-wd-num">${d.getDate()}</span>`;
+    btn.addEventListener('click', () => {
+      planState.viewDate = key;
+      renderPlanPage();
+    });
+    strip.appendChild(btn);
+  }
+}
+
+/* ---- شريط التقدم ---- */
+function renderPlanProgress(data) {
+  const { total, done, pct } = calcPlanProgress(data);
+  document.getElementById('planProgressPct').textContent  = `${pct}%`;
+  document.getElementById('planProgressFill').style.width = `${pct}%`;
+  document.getElementById('planProgressCounts').textContent =
+    total === 0
+      ? 'لا توجد مواضيع بعد'
+      : `${done} من ${total} موضوع مكتمل`;
+}
+
+/* ---- قائمة المواد ---- */
+function renderPlanSubjects(data) {
+  const container = document.getElementById('planSubjects');
+  const empty     = document.getElementById('planEmpty');
+
+  // أزل البطاقات القديمة فقط
+  container.querySelectorAll('.plan-subject-card').forEach(el => el.remove());
+
+  if (data.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  data.forEach(subject => {
+    const card = buildSubjectCard(subject);
+    container.appendChild(card);
+  });
+}
+
+/* ---- بناء بطاقة مادة ---- */
+function buildSubjectCard(subject) {
+  const { total, done, pct } = calcSubjectProgress(subject);
+
+  const card = document.createElement('div');
+  card.className = 'plan-subject-card';
+  card.dataset.id = subject.id;
+  if (subject.collapsed) card.classList.add('collapsed');
+  card.style.setProperty('--sc', subject.color);
+
+  card.innerHTML = `
+    <div class="plan-subject-header">
+      <div class="plan-subject-dot" style="background:${subject.color}"></div>
+      <span class="plan-subject-name">${subject.name}</span>
+      <div class="plan-subject-mini-progress">
+        <div class="plan-subject-mini-fill" style="width:${pct}%;background:${subject.color}"></div>
+      </div>
+      <span class="plan-subject-meta">${done}/${total}</span>
+      <div class="plan-subject-actions">
+        <button class="plan-subject-action-btn edit-subj" title="تعديل">✏️</button>
+        <button class="plan-subject-action-btn del" title="حذف">🗑</button>
+      </div>
+      <span class="plan-subject-chevron">▲</span>
+    </div>
+    <div class="plan-topics-body">
+      ${subject.topics.map(t => buildTopicItemHTML(t, subject.color)).join('')}
+      <div class="plan-inline-add">
+        <input type="text" class="plan-inline-input" placeholder="أضف موضوعاً..." maxlength="80"/>
+        <button class="plan-inline-add-btn">+</button>
+      </div>
+    </div>`;
+
+  // ---- طي/توسيع عند الضغط على الرأس ----
+  card.querySelector('.plan-subject-header').addEventListener('click', e => {
+    if (e.target.closest('.plan-subject-actions') || e.target.closest('.plan-inline-add')) return;
+    subject.collapsed = !subject.collapsed;
+    card.classList.toggle('collapsed', subject.collapsed);
+    updatePlanSubject(subject);
+  });
+
+  // ---- تعديل المادة ----
+  card.querySelector('.edit-subj').addEventListener('click', e => {
+    e.stopPropagation();
+    openPlanPopup(subject);
+  });
+
+  // ---- حذف المادة ----
+  card.querySelector('.del').addEventListener('click', e => {
+    e.stopPropagation();
+    if (!confirm(`حذف مادة "${subject.name}"؟`)) return;
+    deletePlanSubject(subject.id);
+  });
+
+  // ---- تفعيل checkbox المواضيع ----
+  card.querySelectorAll('.plan-topic-item').forEach(item => {
+    const topicId = item.dataset.topicId;
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('plan-topic-del')) return;
+      toggleTopic(subject.id, topicId);
+    });
+  });
+
+  // ---- حذف موضوع ----
+  card.querySelectorAll('.plan-topic-del').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const topicId = btn.dataset.topicId;
+      deleteTopic(subject.id, topicId);
+    });
+  });
+
+  // ---- إضافة موضوع سريع ----
+  const inlineInput = card.querySelector('.plan-inline-input');
+  const inlineBtn   = card.querySelector('.plan-inline-add-btn');
+  const addInline   = () => {
+    const text = inlineInput.value.trim();
+    if (!text) return;
+    addTopicToSubject(subject.id, text);
+    inlineInput.value = '';
+    inlineInput.focus();
+  };
+  inlineBtn.addEventListener('click', addInline);
+  inlineInput.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addInline(); } });
+
+  return card;
+}
+
+function buildTopicItemHTML(topic, color) {
+  return `
+    <div class="plan-topic-item ${topic.done?'done':''}" data-topic-id="${topic.id}">
+      <div class="plan-topic-check" style="${topic.done?`background:${color};border-color:${color};color:white`:''}">
+        ${topic.done ? '✓' : ''}
+      </div>
+      <span class="plan-topic-text">${escapeHtml(topic.text)}</span>
+      <button class="plan-topic-del" data-topic-id="${topic.id}" title="حذف">✕</button>
+    </div>`;
+}
+
+function calcSubjectProgress(subject) {
+  const total = subject.topics.length;
+  const done  = subject.topics.filter(t => t.done).length;
+  return { total, done, pct: total ? Math.round(done/total*100) : 0 };
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ==========================================
+// عمليات CRUD على البيانات
+// ==========================================
+
+function updatePlanSubject(subject) {
+  const data = getPlanData(planState.viewDate);
+  const idx  = data.findIndex(s => s.id === subject.id);
+  if (idx >= 0) { data[idx] = subject; savePlanData(planState.viewDate, data); }
+}
+
+function toggleTopic(subjectId, topicId) {
+  const data    = getPlanData(planState.viewDate);
+  const subject = data.find(s => s.id === subjectId);
+  if (!subject) return;
+  const topic = subject.topics.find(t => t.id === topicId);
+  if (!topic) return;
+  topic.done = !topic.done;
+  savePlanData(planState.viewDate, data);
+  renderPlanPage();
+}
+
+function deleteTopic(subjectId, topicId) {
+  const data    = getPlanData(planState.viewDate);
+  const subject = data.find(s => s.id === subjectId);
+  if (!subject) return;
+  subject.topics = subject.topics.filter(t => t.id !== topicId);
+  savePlanData(planState.viewDate, data);
+  renderPlanPage();
+}
+
+function addTopicToSubject(subjectId, text) {
+  const data    = getPlanData(planState.viewDate);
+  const subject = data.find(s => s.id === subjectId);
+  if (!subject) return;
+  subject.topics.push({ id: planUID(), text, done: false });
+  savePlanData(planState.viewDate, data);
+  renderPlanPage();
+}
+
+function deletePlanSubject(subjectId) {
+  let data = getPlanData(planState.viewDate);
+  data     = data.filter(s => s.id !== subjectId);
+  savePlanData(planState.viewDate, data);
+
+  // احذف من القوالب أيضاً إذا كانت مرتبطة
+  let templates = getTemplates();
+  const subject = getPlanData(planState.viewDate).find(s => s.id === subjectId); // قبل الحذف
+  if (subject && subject.templateId) {
+    templates = templates.filter(t => t.id !== subject.templateId);
+    saveTemplates(templates);
+  }
+
+  renderPlanPage();
+}
+
+// ==========================================
+// بوب آب إضافة/تعديل مادة
+// ==========================================
+
+function openPlanPopup(existingSubject = null) {
+  planState.editingSubject = existingSubject;
+  planState.pendingTopics  = existingSubject
+    ? existingSubject.topics.map(t => ({ ...t }))
+    : [];
+  planState.selectedDays   = existingSubject ? [...existingSubject.days] : [];
+  planState.selectedColor  = existingSubject ? existingSubject.color : '#6c63ff';
+
+  // ملء الحقول
+  document.getElementById('planSubjectName').value = existingSubject ? existingSubject.name : '';
+  document.getElementById('planSelectedColor').style.background = planState.selectedColor;
+  document.getElementById('planTopicInput').value = '';
+
+  // أيام الأسبوع
+  document.querySelectorAll('.plan-day-btn').forEach(btn => {
+    const day = parseInt(btn.dataset.day);
+    btn.classList.toggle('active', planState.selectedDays.includes(day));
+  });
+
+  // لون مختار
+  document.querySelectorAll('.plan-col').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === planState.selectedColor);
+  });
+
+  renderPopupTopics();
+  showPlanPopup();
+}
+
+function renderPopupTopics() {
+  const list = document.getElementById('planTopicsList');
+  list.innerHTML = '';
+  planState.pendingTopics.forEach(topic => {
+    const pill = document.createElement('div');
+    pill.className = 'plan-topic-pill';
+    pill.innerHTML = `<span>${escapeHtml(topic.text)}</span>
+      <button data-id="${topic.id}" title="حذف">✕</button>`;
+    pill.querySelector('button').addEventListener('click', () => {
+      planState.pendingTopics = planState.pendingTopics.filter(t => t.id !== topic.id);
+      renderPopupTopics();
+    });
+    list.appendChild(pill);
+  });
+}
+
+function savePlanSubject() {
+  const name = document.getElementById('planSubjectName').value.trim();
+  if (!name) {
+    document.getElementById('planSubjectName').focus();
+    return;
+  }
+
+  const data = getPlanData(planState.viewDate);
+
+  if (planState.editingSubject) {
+    // تعديل مادة قائمة
+    const idx = data.findIndex(s => s.id === planState.editingSubject.id);
+    if (idx >= 0) {
+      data[idx].name   = name;
+      data[idx].color  = planState.selectedColor;
+      data[idx].days   = [...planState.selectedDays];
+      // ادمج المواضيع: احفظ done القديمة
+      data[idx].topics = planState.pendingTopics;
+    }
+
+    // حدّث القالب إذا مرتبط
+    if (data[idx] && data[idx].templateId) {
+      const templates = getTemplates();
+      const ti = templates.findIndex(t => t.id === data[idx].templateId);
+      if (ti >= 0) {
+        templates[ti].name   = name;
+        templates[ti].color  = planState.selectedColor;
+        templates[ti].days   = [...planState.selectedDays];
+        templates[ti].topics = planState.pendingTopics.map(t => ({ id:planUID(), text:t.text }));
+        saveTemplates(templates);
+      }
+    }
+  } else {
+    // مادة جديدة
+    const newId = planUID();
+    const newSubject = {
+      id:         planUID(),
+      templateId: newId,
+      name,
+      color:      planState.selectedColor,
+      days:       [...planState.selectedDays],
+      topics:     planState.pendingTopics,
+      collapsed:  false,
+    };
+    data.push(newSubject);
+
+    // أضف قالب إذا اختار أياماً
+    if (planState.selectedDays.length > 0) {
+      const templates = getTemplates();
+      templates.push({
+        id:     newId,
+        name,
+        color:  planState.selectedColor,
+        days:   [...planState.selectedDays],
+        topics: planState.pendingTopics.map(t => ({ id:planUID(), text:t.text })),
+      });
+      saveTemplates(templates);
+    }
+  }
+
+  savePlanData(planState.viewDate, data);
+  hidePlanPopup();
+  renderPlanPage();
+}
+
+// ==========================================
+// إظهار/إخفاء البوب آب
+// ==========================================
+
+function showPlanPopup() {
+  state.activePopup = 'plan';
+  document.getElementById('overlay').classList.add('active');
+  document.getElementById('planPopup').classList.add('active');
+  document.getElementById('planSubjectName').focus();
+}
+
+function hidePlanPopup() {
+  state.activePopup = null;
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('planPopup').classList.remove('active');
+  document.getElementById('planColorOptions').classList.remove('open');
+}
+
+// ==========================================
+// ربط الأحداث — Plan Events
+// ==========================================
+
+function setupPlanEvents() {
+
+  // التنقل بين الأيام
+  document.getElementById('planPrevDay').addEventListener('click', () => {
+    planState.viewDate = shiftDate(planState.viewDate, -1);
+    renderPlanPage();
+  });
+  document.getElementById('planNextDay').addEventListener('click', () => {
+    planState.viewDate = shiftDate(planState.viewDate, +1);
+    renderPlanPage();
+  });
+  document.getElementById('planGoToday').addEventListener('click', () => {
+    planState.viewDate = todayKey();
+    renderPlanPage();
+  });
+
+  // فتح بوب آب الإضافة
+  document.getElementById('planOpenAdd').addEventListener('click', () => openPlanPopup());
+
+  // حفظ
+  document.getElementById('planSaveSubject').addEventListener('click', savePlanSubject);
+  document.getElementById('planSubjectName').addEventListener('keydown', e => {
+    if (e.key==='Enter') savePlanSubject();
+  });
+
+  // إغلاق
+  document.getElementById('closePlanPopup').addEventListener('click', hidePlanPopup);
+
+  // أزرار الأيام
+  document.querySelectorAll('.plan-day-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const day = parseInt(btn.dataset.day);
+      if (planState.selectedDays.includes(day)) {
+        planState.selectedDays = planState.selectedDays.filter(d => d !== day);
+      } else {
+        planState.selectedDays.push(day);
+      }
+      btn.classList.toggle('active', planState.selectedDays.includes(day));
+    });
+  });
+
+  // منتقي اللون
+  document.getElementById('planSelectedColor').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('planColorOptions').classList.toggle('open');
+  });
+  document.querySelectorAll('.plan-col').forEach(el => {
+    el.addEventListener('click', () => {
+      planState.selectedColor = el.dataset.color;
+      document.getElementById('planSelectedColor').style.background = planState.selectedColor;
+      document.querySelectorAll('.plan-col').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('planColorOptions').classList.remove('open');
+    });
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('planColorOptions').classList.remove('open');
+  });
+
+  // إضافة موضوع في البوب آب
+  const addTopicInPopup = () => {
+    const input = document.getElementById('planTopicInput');
+    const text  = input.value.trim();
+    if (!text) return;
+    planState.pendingTopics.push({ id: planUID(), text, done: false });
+    renderPopupTopics();
+    input.value = '';
+    input.focus();
+  };
+  document.getElementById('planAddTopicBtn').addEventListener('click', addTopicInPopup);
+  document.getElementById('planTopicInput').addEventListener('keydown', e => {
+    if (e.key==='Enter') { e.preventDefault(); addTopicInPopup(); }
+  });
+}
+
+// ==========================================
+// تحديث switchTab ليدعم تاب الخطة
+// ==========================================
+
+// نُعيد تعريف switchTab لدعم التاب الجديد
+const _origSwitchTab = switchTab;
+window.switchTab = function(tabName) {
+  _origSwitchTab(tabName);
+  if (tabName === 'plan') {
+    planState.viewDate = todayKey();
+    renderPlanPage();
+  }
+};
+
+// تحديث الكيبورد: Alt+3 = plan، Alt+4 = history
+document.addEventListener('keydown', e => {
+  if (!e.altKey) return;
+  if (e.key === '3') { e.preventDefault(); switchTab('plan');    }
+  if (e.key === '4') { e.preventDefault(); switchTab('history'); }
+});
+
+// ==========================================
+// تهيئة الخطة عند تحميل الصفحة
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupPlanEvents();
+});v
