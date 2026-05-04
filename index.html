@@ -255,75 +255,90 @@
 
   </section>
 
-  <!-- ====== بوب آب إضافة مادة ====== -->
+  <!-- ====== بوب آب إضافة مادة (خطوات) ====== -->
   <div class="popup plan-popup" id="planPopup">
+
     <div class="popup-header">
-      <h2>📚 إضافة مادة جديدة</h2>
-      <p id="planPopupSubtitle">أضف مادة ومواضيعها لهذا اليوم</p>
+      <h2 id="planPopupTitle">📚 إضافة مادة</h2>
+      <p id="planPopupSubtitle">اكتب الاسم واضغط Enter للمتابعة</p>
     </div>
 
-    <div class="plan-form">
-
-      <!-- ① اسم المادة -->
-      <div class="plan-field">
-        <label class="plan-label">① اسم المادة <kbd>Tab</kbd></label>
-        <input type="text" id="planSubjectName" class="plan-input"
-               placeholder="مثال: رياضيات" maxlength="40"
-               autocomplete="off"/>
-      </div>
-
-      <!-- ② اللون -->
-      <div class="plan-field">
-        <label class="plan-label">② اللون <kbd>F</kbd> لفتح / أرقام لاختيار</label>
-        <div class="plan-color-row" id="planColorRow">
-          <button type="button" class="plan-color-choice selected" data-color="#6c63ff" data-ci="1" style="background:#6c63ff"><kbd>1</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#4ade80" data-ci="2" style="background:#4ade80"><kbd>2</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#60a5fa" data-ci="3" style="background:#60a5fa"><kbd>3</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#f59e0b" data-ci="4" style="background:#f59e0b"><kbd>4</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#f43f5e" data-ci="5" style="background:#f43f5e"><kbd>5</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#a78bfa" data-ci="6" style="background:#a78bfa"><kbd>6</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#22d3ee" data-ci="7" style="background:#22d3ee"><kbd>7</kbd></button>
-          <button type="button" class="plan-color-choice" data-color="#f97316" data-ci="8" style="background:#f97316"><kbd>8</kbd></button>
-        </div>
-        <div class="plan-color-preview">
-          <div class="plan-color-preview-dot" id="planColorPreview" style="background:#6c63ff"></div>
-          <span class="plan-color-preview-name" id="planColorName">بنفسجي</span>
-        </div>
-      </div>
-
-      <!-- ③ الأيام -->
-      <div class="plan-field">
-        <label class="plan-label">③ أيام التكرار الأسبوعي <kbd>A</kbd>-<kbd>G</kbd> أو <kbd>V</kbd> للكل</label>
-        <div class="plan-days-row" id="planDaysRow">
-          <button type="button" class="plan-day-btn" data-day="0">أحد<br><kbd>A</kbd></button>
-          <button type="button" class="plan-day-btn" data-day="1">إثن<br><kbd>B</kbd></button>
-          <button type="button" class="plan-day-btn" data-day="2">ثلا<br><kbd>C</kbd></button>
-          <button type="button" class="plan-day-btn" data-day="3">أرب<br><kbd>D</kbd></button>
-          <button type="button" class="plan-day-btn" data-day="4">خمي<br><kbd>F2</kbd></button>
-          <button type="button" class="plan-day-btn" data-day="5">جمع<br><kbd>G</kbd></button>
-          <button type="button" class="plan-day-btn" data-day="6">سبت<br><kbd>K</kbd></button>
-        </div>
-      </div>
-
-      <!-- ④ المواضيع -->
-      <div class="plan-field">
-        <label class="plan-label">④ المواضيع — اكتب واضغط <kbd>Enter</kbd> للإضافة</label>
-        <div class="plan-topics-list" id="planTopicsList"></div>
-        <div class="plan-add-topic-row">
-          <input type="text" id="planTopicInput" class="plan-input"
-                 placeholder="اكتب الموضوع ثم Enter..." maxlength="80"/>
-          <button type="button" class="plan-add-topic-btn" id="planAddTopicBtn">
-            + <kbd>↵</kbd>
-          </button>
-        </div>
-        <div class="plan-topic-hint">اضغط <kbd>Backspace</kbd> لحذف آخر موضوع عندما الحقل فاضي</div>
-      </div>
-
+    <!-- شريط الخطوات -->
+    <div class="plan-steps-bar">
+      <div class="plan-step active" data-step="1"><span>1</span> الاسم</div>
+      <div class="plan-step-sep">›</div>
+      <div class="plan-step" data-step="2"><span>2</span> اللون</div>
+      <div class="plan-step-sep">›</div>
+      <div class="plan-step" data-step="3"><span>3</span> الأيام</div>
+      <div class="plan-step-sep">›</div>
+      <div class="plan-step" data-step="4"><span>4</span> المواضيع</div>
     </div>
 
+    <!-- خطوة 1: الاسم -->
+    <div class="plan-step-panel active" id="planStep1">
+      <label class="plan-step-label">اسم المادة</label>
+      <input type="text" id="planSubjectName" class="plan-input plan-step-input"
+             placeholder="مثال: رياضيات، فيزياء..." maxlength="40" autocomplete="off"/>
+      <div class="plan-step-hint">اضغط <kbd>Enter</kbd> للمتابعة</div>
+    </div>
+
+    <!-- خطوة 2: اللون -->
+    <div class="plan-step-panel" id="planStep2">
+      <label class="plan-step-label">اختر لون المادة</label>
+      <div class="plan-color-row" id="planColorRow">
+        <button type="button" class="plan-color-choice selected" data-color="#6c63ff" style="background:#6c63ff"><kbd>1</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#4ade80" style="background:#4ade80"><kbd>2</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#60a5fa" style="background:#60a5fa"><kbd>3</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#f59e0b" style="background:#f59e0b"><kbd>4</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#f43f5e" style="background:#f43f5e"><kbd>5</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#a78bfa" style="background:#a78bfa"><kbd>6</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#22d3ee" style="background:#22d3ee"><kbd>7</kbd></button>
+        <button type="button" class="plan-color-choice" data-color="#f97316" style="background:#f97316"><kbd>8</kbd></button>
+      </div>
+      <div class="plan-color-preview">
+        <div class="plan-color-preview-dot" id="planColorPreview" style="background:#6c63ff"></div>
+        <span class="plan-color-preview-name" id="planColorName">بنفسجي</span>
+      </div>
+      <div class="plan-step-hint"><kbd>1</kbd>-<kbd>8</kbd> لاختيار اللون &nbsp;•&nbsp; <kbd>Enter</kbd> للمتابعة</div>
+    </div>
+
+    <!-- خطوة 3: الأيام -->
+    <div class="plan-step-panel" id="planStep3">
+      <label class="plan-step-label">أيام التكرار الأسبوعي <span class="plan-label-opt">(اختياري — Enter للتخطي)</span></label>
+      <div class="plan-days-row" id="planDaysRow">
+        <button type="button" class="plan-day-btn" data-day="0">أحد <kbd>1</kbd></button>
+        <button type="button" class="plan-day-btn" data-day="1">إثن <kbd>2</kbd></button>
+        <button type="button" class="plan-day-btn" data-day="2">ثلا <kbd>3</kbd></button>
+        <button type="button" class="plan-day-btn" data-day="3">أرب <kbd>4</kbd></button>
+        <button type="button" class="plan-day-btn" data-day="4">خمي <kbd>5</kbd></button>
+        <button type="button" class="plan-day-btn" data-day="5">جمع <kbd>6</kbd></button>
+        <button type="button" class="plan-day-btn" data-day="6">سبت <kbd>7</kbd></button>
+      </div>
+      <div class="plan-step-hint"><kbd>1</kbd>-<kbd>7</kbd> تحديد الأيام &nbsp;•&nbsp; <kbd>A</kbd> للكل &nbsp;•&nbsp; <kbd>Enter</kbd> للمتابعة</div>
+    </div>
+
+    <!-- خطوة 4: المواضيع -->
+    <div class="plan-step-panel" id="planStep4">
+      <label class="plan-step-label">المواضيع <span class="plan-label-opt">(اختياري — Ctrl+Enter للحفظ)</span></label>
+      <div class="plan-topics-list" id="planTopicsList"></div>
+      <div class="plan-add-topic-row">
+        <input type="text" id="planTopicInput" class="plan-input"
+               placeholder="اكتب الموضوع واضغط Enter..." maxlength="80" autocomplete="off"/>
+        <button type="button" class="plan-add-topic-btn" id="planAddTopicBtn">+ <kbd>↵</kbd></button>
+      </div>
+      <div class="plan-step-hint">
+        <kbd>Enter</kbd> إضافة &nbsp;•&nbsp;
+        <kbd>Backspace</kbd> حذف آخر موضوع (عندما الحقل فاضي) &nbsp;•&nbsp;
+        <kbd>Ctrl+Enter</kbd> حفظ المادة
+      </div>
+    </div>
+
+    <!-- أزرار التنقل -->
     <div class="plan-popup-footer">
       <button class="close-btn" id="closePlanPopup">إلغاء <kbd>Esc</kbd></button>
-      <button class="plan-save-btn" id="planSaveSubject">✓ حفظ <kbd>Ctrl+↵</kbd></button>
+      <button class="plan-nav-btn" id="planPrevStep">‹ رجوع <kbd>←</kbd></button>
+      <button class="plan-save-btn" id="planSaveSubject" style="display:none">✓ حفظ <kbd>Ctrl+↵</kbd></button>
+      <button class="plan-next-btn" id="planNextStep">التالي › <kbd>Enter</kbd></button>
     </div>
   </div>
 
