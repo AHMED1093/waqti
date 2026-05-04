@@ -1398,6 +1398,7 @@ canvas { max-width:100%; }
   text-align: center;
   width: min(400px, 95vw);
   padding: 32px 28px;
+  z-index: 350; /* فوق البوب آب العادي (300) */
 }
 
 .guilt-icon {
@@ -1573,3 +1574,178 @@ canvas { max-width:100%; }
   gap: 6px;
 }
 .guilt-confirm-btn:hover { border-color: var(--rose); color: var(--rose); }
+
+/* ==========================================
+   بوب آب الخطة — نظام الخطوات
+   ========================================== */
+
+.plan-popup { width: min(480px, 95vw); }
+
+/* شريط الخطوات */
+.plan-steps-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border-radius: 10px;
+}
+
+.plan-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text3);
+  transition: var(--tr);
+  white-space: nowrap;
+}
+.plan-step span {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .68rem;
+  font-weight: 700;
+  transition: var(--tr);
+}
+.plan-step.active {
+  color: var(--accent);
+}
+.plan-step.active span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.plan-step.done span {
+  background: var(--green);
+  border-color: var(--green);
+  color: #051a0a;
+}
+.plan-step.done { color: var(--green); }
+
+.plan-step-sep {
+  color: var(--text3);
+  font-size: .8rem;
+  flex-shrink: 0;
+}
+
+/* لوحة الخطوة */
+.plan-step-panel {
+  display: none;
+  animation: fadeUp .25s ease;
+}
+.plan-step-panel.active { display: block; }
+
+.plan-step-label {
+  display: block;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.plan-label-opt {
+  font-size: .7rem;
+  color: var(--text3);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.plan-step-input {
+  font-size: 1.05rem;
+  padding: 12px 16px;
+}
+
+.plan-step-hint {
+  margin-top: 10px;
+  font-size: .72rem;
+  color: var(--text3);
+  line-height: 1.6;
+}
+
+/* أزرار التنقل */
+.plan-popup-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  align-items: center;
+}
+.plan-popup-footer .close-btn {
+  min-width: 90px;
+  flex: 0;
+}
+
+.plan-nav-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'Cairo', sans-serif;
+  font-size: .85rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--tr);
+  display: flex; align-items: center; gap: 5px;
+  white-space: nowrap;
+}
+.plan-nav-btn:hover { background: var(--border); color: var(--text); }
+
+.plan-next-btn {
+  flex: 1;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; color: white;
+  font-family: 'Cairo', sans-serif;
+  font-size: .9rem; font-weight: 700;
+  padding: 11px 16px;
+  border-radius: 10px; cursor: pointer;
+  transition: var(--tr);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  box-shadow: 0 3px 12px var(--glow);
+}
+.plan-next-btn:hover { transform: translateY(-1px); }
+.plan-next-btn kbd {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.3);
+  border-bottom-color: rgba(0,0,0,.2);
+  color: rgba(255,255,255,.9);
+}
+
+/* أيام الأسبوع محسّنة */
+.plan-days-row {
+  display: flex; gap: 7px; flex-wrap: wrap;
+}
+.plan-day-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  color: var(--text2);
+  font-family: 'Cairo', sans-serif;
+  font-size: .8rem; font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 9px; cursor: pointer;
+  transition: var(--tr);
+  display: flex; align-items: center; gap: 5px;
+}
+.plan-day-btn:hover { border-color: var(--accent); color: var(--accent); }
+.plan-day-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+.plan-day-btn.active kbd {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.85);
+}
+
+/* رقم الموضوع */
+.plan-topic-num {
+  font-size: .68rem;
+  color: var(--text3);
+  min-width: 18px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
