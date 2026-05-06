@@ -23,7 +23,7 @@ const ACTIVITY_KEYS = ['دراسة', 'استراحة', 'صلاة', 'أكل', 'ت
 /* حالة التايمر الرئيسي */
 const state = {
   running:       false,
-  totalSeconds:  600,
+  totalSeconds:  600,       // يتحدث من الإعدادات
   remaining:     600,
   intervalNum:   1,
   currentSession: [],
@@ -32,6 +32,7 @@ const state = {
   darkMode:      true,
   activePopup:   null,
   _wasRunning:   false,
+  intervalMinutes: 10,      // المدة المختارة من المستخدم
 };
 
 let timerTick = null;
@@ -88,18 +89,24 @@ function fmtTime12(date) {
 
 function loadSettings() {
   const s = JSON.parse(localStorage.getItem('waqti_settings') || '{}');
-  state.darkMode    = s.darkMode    ?? true;
-  state.goalMinutes = s.goalMinutes ?? 180;
-  sprint.goalMin    = s.sprintGoal  ?? 60;
+  state.darkMode       = s.darkMode       ?? true;
+  state.goalMinutes    = s.goalMinutes    ?? 180;
+  state.intervalMinutes = s.intervalMinutes ?? 10;
+  sprint.goalMin       = s.sprintGoal     ?? 60;
+  // طبّق المدة على التايمر
+  state.totalSeconds = state.intervalMinutes * 60;
+  state.remaining    = state.totalSeconds;
   applyTheme();
   updateGoalDisplay();
+  updateDurDisplay();
 }
 
 function saveSettings() {
   localStorage.setItem('waqti_settings', JSON.stringify({
-    darkMode:    state.darkMode,
-    goalMinutes: state.goalMinutes,
-    sprintGoal:  sprint.goalMin,
+    darkMode:        state.darkMode,
+    goalMinutes:     state.goalMinutes,
+    sprintGoal:      sprint.goalMin,
+    intervalMinutes: state.intervalMinutes,
   }));
 }
 
@@ -215,16 +222,20 @@ function resetTimer() {
 function updateStartBtn() {
   const btn   = document.getElementById('startBtn');
   const reset = document.getElementById('resetBtn');
+  const durRow = document.getElementById('intervalDurationRow');
+
   if (state.running) {
     btn.innerHTML     = '⏱ يعمل';
     btn.style.opacity = '0.65';
     btn.style.cursor  = 'not-allowed';
-    if (reset) reset.disabled = true;
+    if (reset)  reset.disabled = true;
+    if (durRow) durRow.classList.add('hidden');
   } else {
     btn.innerHTML     = '▶ ابدأ <kbd>Space</kbd>';
     btn.style.opacity = '';
     btn.style.cursor  = '';
-    if (reset) reset.disabled = false;
+    if (reset)  reset.disabled = false;
+    if (durRow) durRow.classList.remove('hidden');
   }
 }
 
@@ -656,6 +667,28 @@ function updateGoalDisplay() {
   if (h>0) txt += `${h} ساعة`;
   if (m>0) txt += ` ${m} دقيقة`;
   document.getElementById('goalDisplay').textContent = txt.trim();
+}
+
+/* ---- ضبط مدة الإنتيرفال ---- */
+function updateDurDisplay() {
+  const el = document.getElementById('durNum');
+  if (el) el.textContent = state.intervalMinutes;
+  // حدّث عرض التايمر أيضاً إذا لم يكن شغّالاً
+  if (!state.running) {
+    updateTimerDisplay();
+  }
+}
+
+function changeDuration(delta) {
+  if (state.running) return; // لا تغيير أثناء الشغل
+  const newVal = state.intervalMinutes + delta;
+  if (newVal < 1 || newVal > 180) return;
+  state.intervalMinutes = newVal;
+  state.totalSeconds    = newVal * 60;
+  state.remaining       = state.totalSeconds;
+  updateDurDisplay();
+  updateRing();
+  saveSettings();
 }
 
 // ==========================================
@@ -1278,14 +1311,20 @@ function setupKeyboard() {
     }
 
     // + / - — تغيير الهدف
-    if (e.key==='+'||e.key==='=') {
+    if (!e.ctrlKey && (e.key==='+'||e.key==='=')) {
       state.goalMinutes=Math.min(720,state.goalMinutes+30);
       updateGoalDisplay(); updateGoalBar(); saveSettings(); return;
     }
-    if (e.key==='-'||e.key==='_') {
+    if (!e.ctrlKey && (e.key==='-'||e.key==='_')) {
       state.goalMinutes=Math.max(30,state.goalMinutes-30);
       updateGoalDisplay(); updateGoalBar(); saveSettings(); return;
     }
+
+    // Ctrl++ / Ctrl+- — تغيير مدة الإنتيرفال (قبل البدء فقط)
+    if (e.ctrlKey && (e.key==='+'||e.key==='='))  { e.preventDefault(); changeDuration(+1); return; }
+    if (e.ctrlKey && (e.key==='-'||e.key==='_'))   { e.preventDefault(); changeDuration(-1); return; }
+    if (e.ctrlKey && e.key==='ArrowUp')             { e.preventDefault(); changeDuration(+5); return; }
+    if (e.ctrlKey && e.key==='ArrowDown')           { e.preventDefault(); changeDuration(-5); return; }
 
     // C/J مباشرة (بدون بوب آب)
     if (!state.activePopup) {
@@ -1305,6 +1344,8 @@ function setupEventListeners() {
   document.getElementById('startBtn').addEventListener('click', toggleTimer);
   document.getElementById('resetBtn').addEventListener('click', resetTimer);
   document.getElementById('quickAddBtn').addEventListener('click', showQuickAdd);
+  document.getElementById('durMinus').addEventListener('click', () => changeDuration(-1));
+  document.getElementById('durPlus').addEventListener('click',  () => changeDuration(+1));
 
   /* ---- التابس ---- */
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1431,6 +1472,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTimelineToggle();
   updateTimerDisplay();
   updateRing();
+  updateDurDisplay();
   updateSprintDisplay();
   updateMinuteBars();
 
