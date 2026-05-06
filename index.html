@@ -40,8 +40,12 @@
         <div class="sp-row"><kbd>Space</kbd><span>ابدأ / إيقاف</span></div>
         <div class="sp-row"><kbd>R</kbd><span>إعادة تعيين</span></div>
         <div class="sp-row"><kbd>Q</kbd><span>إضافة سريعة</span></div>
-        <div class="sp-row"><kbd>+</kbd><span>زيادة الهدف 30د</span></div>
-        <div class="sp-row"><kbd>-</kbd><span>تقليل الهدف 30د</span></div>
+        <div class="sp-row"><kbd>Ctrl++</kbd><span>زيادة المدة دقيقة</span></div>
+        <div class="sp-row"><kbd>Ctrl+-</kbd><span>تقليل المدة دقيقة</span></div>
+        <div class="sp-row"><kbd>Ctrl+↑</kbd><span>زيادة المدة 5 دقائق</span></div>
+        <div class="sp-row"><kbd>Ctrl+↓</kbd><span>تقليل المدة 5 دقائق</span></div>
+        <div class="sp-row"><kbd>+</kbd><span>زيادة هدف الدراسة</span></div>
+        <div class="sp-row"><kbd>-</kbd><span>تقليل هدف الدراسة</span></div>
       </div>
       <div class="sp-section">
         <div class="sp-title">⚡ تايمر السبرينت</div>
@@ -115,6 +119,17 @@
           <div class="interval-count">إنتيرفال <span id="intervalNum">1</span></div>
         </div>
       </div>
+
+      <!-- ضبط مدة الإنتيرفال — يظهر فقط قبل البدء -->
+      <div class="interval-duration-row" id="intervalDurationRow">
+        <button class="interval-dur-btn" id="durMinus" title="تقليل [Ctrl+-]">−</button>
+        <div class="interval-dur-display">
+          <span class="interval-dur-num" id="durNum">10</span>
+          <span class="interval-dur-label">دقيقة</span>
+        </div>
+        <button class="interval-dur-btn" id="durPlus" title="زيادة [Ctrl++]">+</button>
+      </div>
+
       <div class="controls">
         <button class="ctrl-btn reset" id="resetBtn" title="إعادة تعيين [R] — يعمل فقط قبل البدء">↺ <kbd>R</kbd></button>
         <button class="ctrl-btn main" id="startBtn">▶ ابدأ <kbd>Space</kbd></button>
