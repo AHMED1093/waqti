@@ -1749,3 +1749,55 @@ canvas { max-width:100%; }
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* ضبط مدة الإنتيرفال */
+.interval-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 18px;
+  transition: var(--tr);
+}
+
+.interval-duration-row.hidden { display: none; }
+
+.interval-dur-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: var(--tr);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+}
+.interval-dur-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
+.interval-dur-btn:active { transform: scale(.93); }
+
+.interval-dur-display {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 70px;
+  justify-content: center;
+}
+
+.interval-dur-num {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition: color .2s;
+}
+
+.interval-dur-label {
+  font-size: .78rem;
+  color: var(--text3);
+}
