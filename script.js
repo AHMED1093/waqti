@@ -1357,8 +1357,17 @@ function setupKeyboard() {
 
 function setupEventListeners() {
 
-  /* ---- التايمر الرئيسي ---- */
-  document.getElementById('startBtn').addEventListener('click', toggleTimer);
+  /* ---- ريست اليوم ---- */
+  document.getElementById('resetTodayBtn').addEventListener('click', () => {
+    if (!confirm('هل تريد حذف جميع إحصائيات اليوم؟ لا يمكن التراجع.')) return;
+    state.currentSession = [];
+    state._loadedForDay  = todayKey();
+    localStorage.removeItem(`waqti_${todayKey()}`);
+    renderRecent();
+    updateGoalBar();
+    updateStreak();
+    if (window._fbSync) window._fbSync();
+  });
   document.getElementById('resetBtn').addEventListener('click', resetTimer);
   document.getElementById('quickAddBtn').addEventListener('click', showQuickAdd);
   document.getElementById('durMinus').addEventListener('click', () => changeDuration(-1));
