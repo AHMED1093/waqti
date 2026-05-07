@@ -33,14 +33,18 @@ const fbState = {
   friendData: null,
 };
 
+// ─── مساعد: مفتاح اليوم بالتوقيت المحلي ────────
+function getTodayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
 // ─── حساب إحصائيات اليوم من localStorage ────
 function calcTodayStats() {
-  // اليوم
-  const y   = new Date().getFullYear();
-  const m   = String(new Date().getMonth()+1).padStart(2,'0');
-  const d   = String(new Date().getDate()).padStart(2,'0');
-  const dk  = `${y}-${m}-${d}`;
-
+  const dk   = getTodayKey();
   const raw  = localStorage.getItem(`waqti_${dk}`);
   const data = raw ? JSON.parse(raw) : [];
 
@@ -79,14 +83,16 @@ export async function syncToFirebase() {
   if (!fbState.connected || !fbState.myId) return;
   try {
     const stats = calcTodayStats();
+    const today = getTodayKey();
     await update(ref(db, `/users/${fbState.myId}`), {
-      studyTime:          stats.studyTime,
-      breakTime:          stats.breakTime,
-      focusScore:         stats.focusScore,
-      sessionsCount:      stats.sessionsCount,
-      streak:             stats.streak,
+      studyTime:           stats.studyTime,
+      breakTime:           stats.breakTime,
+      focusScore:          stats.focusScore,
+      sessionsCount:       stats.sessionsCount,
+      streak:              stats.streak,
       procrastinationTime: stats.procrastination,
-      updatedAt:          Date.now(),
+      date:                today,          // ← نحفظ التاريخ
+      updatedAt:           Date.now(),
     });
   } catch (e) {
     console.warn('Firebase sync error:', e);
@@ -145,9 +151,29 @@ function fmt(min) {
   return h > 0 ? `${h}س ${m}د` : `${m}د`;
 }
 
+/** إذا بيانات المستخدم من يوم سابق → أرجع صفر */
+function freshData(rawData) {
+  if (!rawData) return {};
+  const today = getTodayKey();
+  // إذا ما في date أو التاريخ مختلف → بيانات اليوم صفر
+  if (!rawData.date || rawData.date !== today) {
+    return {
+      studyTime:           0,
+      breakTime:           0,
+      focusScore:          0,
+      sessionsCount:       0,
+      procrastinationTime: 0,
+      streak:              rawData.streak || 0, // الستريك يبقى (مو يومي)
+      date:                rawData.date || null,
+      updatedAt:           rawData.updatedAt || 0,
+    };
+  }
+  return rawData;
+}
+
 function renderComparison() {
-  const me  = fbState.myData     || {};
-  const fr  = fbState.friendData || {};
+  const me  = freshData(fbState.myData);
+  const fr  = freshData(fbState.friendData);
 
   // ── قيم ──
   const vals = {
