@@ -1998,3 +1998,19 @@ canvas { max-width:100%; }
   color: var(--text3);
   padding: 4px;
 }
+
+/* زر ريست اليوم */
+.reset-today-btn {
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  font-family: 'Cairo', sans-serif;
+  font-size: .72rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition: var(--tr);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.reset-today-btn:hover { color: var(--rose); }
