@@ -118,6 +118,8 @@ function loadTodayData() {
 function saveTodayData() {
   localStorage.setItem(`waqti_${todayKey()}`, JSON.stringify(state.currentSession));
   updateStreak();
+  // مزامنة Firebase إذا متصل
+  if (window._fbSync) window._fbSync();
 }
 
 function getDayData(dateKey) {
@@ -344,7 +346,7 @@ function hideActivityPopup() {
   }, 380);
 }
 
-function selectActivity(activityName, durationMinutes = 10) {
+function selectActivity(activityName, durationMinutes = state.intervalMinutes) {
   if (activityName === 'تسخيت') {
     // أخفِ بوب آب النشاط مؤقتاً دون drain، وأظهر بوب آب الضمير
     document.getElementById('popup').classList.remove('active');
@@ -1235,6 +1237,7 @@ function setupKeyboard() {
       if (e.key==='2') { e.preventDefault(); switchTab('dashboard'); return; }
       if (e.key==='3') { e.preventDefault(); switchTab('plan');      return; }
       if (e.key==='4') { e.preventDefault(); switchTab('history');   return; }
+      if (e.key==='5') { e.preventDefault(); switchTab('compare');   return; }
     }
 
     // أسهم — التنقل بين أيام الداش بورد
@@ -2169,10 +2172,11 @@ function setupPlanEvents() {
 const _origSwitchTab = switchTab;
 window.switchTab = function(tabName) {
   _origSwitchTab(tabName);
-  if (tabName==='plan') {
+  if (tabName === 'plan') {
     planState.viewDate = todayKey();
     renderPlanPage();
   }
+  // تاب المقارنة — لا يحتاج منطق إضافي، Firebase يتولى
 };
 
 // تهيئة الخطة
