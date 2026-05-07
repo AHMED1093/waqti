@@ -131,9 +131,17 @@ function getAllDates() {
   const dates = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith('waqti_') && !k.includes('settings') && !k.includes('sprint')) {
-      dates.push(k.replace('waqti_', ''));
-    }
+    if (!k) continue;
+    if (!k.startsWith('waqti_')) continue;
+    // استبعد مفاتيح الإعدادات وFirebase والسبرينت
+    if (k === 'waqti_settings') continue;
+    if (k.includes('sprint'))   continue;
+    if (k.includes('plan'))     continue;
+    if (k.includes('fb'))       continue;
+    // تأكد إن المفتاح يطابق صيغة تاريخ YYYY-MM-DD
+    const dateStr = k.replace('waqti_', '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
+    dates.push(dateStr);
   }
   return dates.sort().reverse();
 }
