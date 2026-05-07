@@ -19,6 +19,7 @@
       <button class="tab-btn" data-tab="dashboard">الداش بورد <kbd>Alt+2</kbd></button>
       <button class="tab-btn" data-tab="plan">الخطة <kbd>Alt+3</kbd></button>
       <button class="tab-btn" data-tab="history">السجل <kbd>Alt+4</kbd></button>
+      <button class="tab-btn" data-tab="compare">⚔️ المقارنة <kbd>Alt+5</kbd></button>
     </nav>
     <div class="topbar-right">
       <button class="icon-btn" id="themeToggle">🌙 <kbd>T</kbd></button>
@@ -365,6 +366,92 @@
     </div>
   </section>
 
+  <!-- ====== صفحة المقارنة ====== -->
+  <section class="page" id="page-compare">
+
+    <!-- إعداد الهوية -->
+    <div class="cmp-setup-card" id="cmpSetupCard">
+      <h3 class="cmp-title">🔥 وضع التنافس</h3>
+      <p class="cmp-sub">أدخل معرّفك وأنشئ جلسة مقارنة مع صديق</p>
+      <div class="cmp-fields">
+        <div class="cmp-field">
+          <label>معرّفك (User ID)</label>
+          <div class="cmp-input-row">
+            <input type="text" id="myUserId" placeholder="مثال: ahmed123" maxlength="30"/>
+            <button class="cmp-gen-btn" id="genIdBtn" title="توليد معرف عشوائي">🎲</button>
+          </div>
+        </div>
+        <div class="cmp-field">
+          <label>معرّف صديقك (Friend ID)</label>
+          <input type="text" id="friendUserId" placeholder="مثال: omar456" maxlength="30"/>
+        </div>
+      </div>
+      <button class="cmp-connect-btn" id="cmpConnectBtn">⚡ اتصال وابدأ المقارنة</button>
+      <div class="cmp-status" id="cmpStatus"></div>
+    </div>
+
+    <!-- لوحة المقارنة — تظهر بعد الاتصال -->
+    <div class="cmp-board" id="cmpBoard" style="display:none">
+
+      <!-- ترويسة + زر قطع الاتصال -->
+      <div class="cmp-board-header">
+        <div class="cmp-live-badge">🔴 مباشر</div>
+        <span class="cmp-ids-label" id="cmpIdsLabel"></span>
+        <button class="cmp-disconnect-btn" id="cmpDisconnectBtn">✕ قطع</button>
+      </div>
+
+      <!-- بطاقة الفائز -->
+      <div class="cmp-winner-card" id="cmpWinnerCard">
+        <span class="cmp-winner-text" id="cmpWinnerText">جاري التحميل...</span>
+      </div>
+
+      <!-- شبكة المقارنة -->
+      <div class="cmp-grid">
+
+        <!-- عناوين -->
+        <div class="cmp-col-header cmp-mine">
+          <div class="cmp-avatar">🧑</div>
+          <div class="cmp-player-name" id="cmpMyName">أنا</div>
+        </div>
+        <div class="cmp-col-header cmp-stat-title">الإحصائية</div>
+        <div class="cmp-col-header cmp-friend">
+          <div class="cmp-avatar">👤</div>
+          <div class="cmp-player-name" id="cmpFriendName">الصديق</div>
+        </div>
+
+        <!-- وقت الدراسة -->
+        <div class="cmp-val cmp-mine" id="cv-myStudy">—</div>
+        <div class="cmp-stat-name">📚 الدراسة</div>
+        <div class="cmp-val cmp-friend" id="cv-frStudy">—</div>
+
+        <!-- الستريك -->
+        <div class="cmp-val cmp-mine" id="cv-myStreak">—</div>
+        <div class="cmp-stat-name">🔥 الستريك</div>
+        <div class="cmp-val cmp-friend" id="cv-frStreak">—</div>
+
+        <!-- Focus Score -->
+        <div class="cmp-val cmp-mine" id="cv-myScore">—</div>
+        <div class="cmp-stat-name">⚡ Focus Score</div>
+        <div class="cmp-val cmp-friend" id="cv-frScore">—</div>
+
+        <!-- الجلسات -->
+        <div class="cmp-val cmp-mine" id="cv-mySessions">—</div>
+        <div class="cmp-stat-name">🔄 الجلسات</div>
+        <div class="cmp-val cmp-friend" id="cv-frSessions">—</div>
+
+        <!-- التسخيت -->
+        <div class="cmp-val cmp-mine" id="cv-myProc">—</div>
+        <div class="cmp-stat-name">📱 التسخيت</div>
+        <div class="cmp-val cmp-friend" id="cv-frProc">—</div>
+
+      </div>
+
+      <!-- آخر تحديث -->
+      <div class="cmp-last-update" id="cmpLastUpdate">لا يوجد تحديث بعد</div>
+    </div>
+
+  </section>
+
   <!-- ====== البوب آب الرئيسي ====== -->
   <div class="overlay" id="overlay"></div>
 
@@ -536,6 +623,8 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script type="module" src="firebase.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
