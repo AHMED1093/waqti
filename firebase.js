@@ -24,13 +24,14 @@ const db  = getDatabase(app);
 
 // ─── الحالة الداخلية ─────────────────────────
 const fbState = {
-  myId:       null,
-  friendId:   null,
-  connected:  false,
-  unsubMe:    null,   // دالة إلغاء الاستماع لبيانات المستخدم
-  unsubFriend: null,  // دالة إلغاء الاستماع لبيانات الصديق
-  myData:     null,
-  friendData: null,
+  myId:        null,
+  friendId:    null,
+  connected:   false,
+  unsubMe:     null,
+  unsubFriend: null,
+  myData:      null,
+  friendData:  null,
+  autoSyncId:  null,   // ID المزامنة التلقائية كل 5 دقائق
 };
 
 // ─── مساعد: مفتاح اليوم بالتوقيت المحلي ────────
@@ -124,14 +125,18 @@ export function connectComparison(myId, friendId) {
     renderComparison();
   });
 
-  // ارفع بياناتي الحالية
+  // ارفع بياناتي الحالية فوراً (حتى لو صفر — لتحديث الـ date)
   syncToFirebase();
+
+  // كذلك زامن كل 5 دقائق تلقائياً
+  fbState.autoSyncId = setInterval(syncToFirebase, 5 * 60 * 1000);
   return true;
 }
 
 export function disconnectComparison() {
   if (fbState.unsubMe)     { fbState.unsubMe();     fbState.unsubMe = null; }
   if (fbState.unsubFriend) { fbState.unsubFriend();  fbState.unsubFriend = null; }
+  if (fbState.autoSyncId)  { clearInterval(fbState.autoSyncId); fbState.autoSyncId = null; }
   fbState.connected  = false;
   fbState.myData     = null;
   fbState.friendData = null;
