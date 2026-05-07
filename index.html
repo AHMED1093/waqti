@@ -623,8 +623,13 @@
     </div>
   </div>
 
-  <!-- Firebase SDK -->
-  <script type="module" src="firebase.js"></script>
-  <script src="script.js"></script>
+<script type="module">
+  import { syncToFirebase, connectComparison, disconnectComparison } 
+    from './firebase.js';
+  window._fbSync = syncToFirebase;
+  window._fbConnect = connectComparison;
+  window._fbDisconnect = disconnectComparison;
+</script>
+<script src="script.js" defer></script>
 </body>
 </html>
