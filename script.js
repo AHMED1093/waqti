@@ -111,14 +111,15 @@ function saveSettings() {
 }
 
 function loadTodayData() {
-  const saved = localStorage.getItem(`waqti_${todayKey()}`);
-  state.currentSession = saved ? JSON.parse(saved) : [];
+  const key   = `waqti_${todayKey()}`;
+  const saved = localStorage.getItem(key);
+  state.currentSession      = saved ? JSON.parse(saved) : [];
+  state._loadedForDay       = todayKey(); // نحفظ اليوم الذي حُمّل لأجله
 }
 
 function saveTodayData() {
   localStorage.setItem(`waqti_${todayKey()}`, JSON.stringify(state.currentSession));
   updateStreak();
-  // مزامنة Firebase إذا متصل
   if (window._fbSync) window._fbSync();
 }
 
@@ -366,6 +367,11 @@ function selectActivity(activityName, durationMinutes = state.intervalMinutes) {
 }
 
 function _commitActivity(activityName, durationMinutes = 10) {
+  // ✅ إذا تغيّر اليوم منذ آخر تحميل، أعد تحميل بيانات اليوم الجديد أولاً
+  if (state._loadedForDay && state._loadedForDay !== todayKey()) {
+    loadTodayData();
+  }
+
   const now       = new Date();
   const endTime   = fmtTime12(now);
   const startD    = new Date(now.getTime() - durationMinutes * 60000);
@@ -1588,6 +1594,10 @@ function confirmGuilt() {
   guilt.tickId = null;
   document.getElementById('guiltPopup').classList.remove('active');
   // سجّل التسخيت ثم أعد بوب آب النشاط للإنتيرفال التالي
+  // ✅ تحقق من تغيير اليوم
+  if (state._loadedForDay && state._loadedForDay !== todayKey()) {
+    loadTodayData();
+  }
   const now       = new Date();
   const endTime   = fmtTime12(now);
   const startD    = new Date(now.getTime() - guilt.pendingDur * 60000);
