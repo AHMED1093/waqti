@@ -153,7 +153,10 @@
       </div>
     </div>
 
-    <div class="help-hint">اضغط <kbd>H</kbd> لعرض جميع الاختصارات</div>
+    <div class="help-hint">
+      اضغط <kbd>H</kbd> لعرض جميع الاختصارات &nbsp;•&nbsp;
+      <button class="reset-today-btn" id="resetTodayBtn" title="حذف إحصائيات اليوم">🗑 إعادة تعيين اليوم</button>
+    </div>
 
     <div class="recent-section">
       <h3>آخر الأنشطة</h3>
@@ -623,13 +626,8 @@
     </div>
   </div>
 
-<script type="module">
-  import { syncToFirebase, connectComparison, disconnectComparison } 
-    from './firebase.js';
-  window._fbSync = syncToFirebase;
-  window._fbConnect = connectComparison;
-  window._fbDisconnect = disconnectComparison;
-</script>
-<script src="script.js" defer></script>
+  <!-- Firebase SDK -->
+  <script type="module" src="firebase.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
