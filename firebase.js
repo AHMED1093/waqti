@@ -261,72 +261,6 @@ function renderComparison() {
   }
 }
 
-// ─── أحداث واجهة المقارنة ────────────────────
-function updateStatus(msg, type) {
-  const el = document.getElementById('cmpStatus');
-  if (!el) return;
-  el.textContent = msg;
-  el.className   = 'cmp-status' + (type ? ` cmp-status-${type}` : '');
-}
-
-function initCompareUI() {
-  // استعادة الـ IDs المحفوظة
-  const savedMy  = localStorage.getItem('waqti_fbMyId');
-  const savedFr  = localStorage.getItem('waqti_fbFriendId');
-  if (savedMy)  { const el = document.getElementById('myUserId');     if(el) el.value = savedMy;  }
-  if (savedFr)  { const el = document.getElementById('friendUserId'); if(el) el.value = savedFr; }
-
-  // توليد ID عشوائي
-  document.getElementById('genIdBtn')?.addEventListener('click', () => {
-    const id = 'user_' + Math.random().toString(36).slice(2,8);
-    const el = document.getElementById('myUserId');
-    if (el) { el.value = id; }
-  });
-
-  // زر الاتصال
-  document.getElementById('cmpConnectBtn')?.addEventListener('click', () => {
-    const myId  = document.getElementById('myUserId')?.value?.trim();
-    const frId  = document.getElementById('friendUserId')?.value?.trim();
-    if (!myId || !frId) { updateStatus('أدخل المعرّفين أولاً', 'err'); return; }
-    if (myId === frId)   { updateStatus('لا يمكن مقارنة نفسك!', 'err'); return; }
-
-    updateStatus('جارٍ الاتصال...', 'loading');
-    const ok = connectComparison(myId, frId);
-    if (ok) {
-      document.getElementById('cmpSetupCard').style.display = 'none';
-      document.getElementById('cmpBoard').style.display     = 'block';
-      document.getElementById('cmpMyName').textContent      = myId;
-      document.getElementById('cmpFriendName').textContent  = frId;
-      document.getElementById('cmpIdsLabel').textContent    = `${myId} vs ${frId}`;
-      updateStatus('متصل ✓', 'ok');
-    } else {
-      updateStatus('حدث خطأ في الاتصال', 'err');
-    }
-  });
-
-  // زر قطع الاتصال
-  document.getElementById('cmpDisconnectBtn')?.addEventListener('click', () => {
-    disconnectComparison();
-  });
-}
-
-// ─── تشغيل تلقائي عند تحميل الصفحة ──────────
-window.addEventListener('DOMContentLoaded', () => {
-  initCompareUI();
-
-  // إذا كان متصلاً من قبل، أعد الاتصال تلقائياً
-  const savedMy = localStorage.getItem('waqti_fbMyId');
-  const savedFr = localStorage.getItem('waqti_fbFriendId');
-  if (savedMy && savedFr) {
-    const myInput = document.getElementById('myUserId');
-    const frInput = document.getElementById('friendUserId');
-    if (myInput) myInput.value = savedMy;
-    if (frInput) frInput.value = savedFr;
-  }
-});
-
-// ─── تصدير للاستخدام من script.js ────────────
-window._fbSync = syncToFirebase;
 // ══════════════════════════════════════════════
 //   المحادثة الفورية (Chat)
 // ══════════════════════════════════════════════
@@ -336,6 +270,62 @@ const chatState = {
   lastMsgCount: 0,
   isOnPage: false,   // هل المستخدم على صفحة المقارنة الآن؟
 };
+
+// ── صوت الإشعار بـ Web Audio API ──────────────────
+function playMsgSound(isMine) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    if (isMine) {
+      // صوت إرسال: نغمة خفيفة صاعدة (pop ناعم)
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(780, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.22);
+      osc.onended = () => ctx.close();
+
+    } else {
+      // صوت استقبال: نغمتان متتاليتان (ding-ding مميز)
+      const t = ctx.currentTime;
+
+      [0, 0.13].forEach((delay, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filt = ctx.createBiquadFilter();
+
+        osc.connect(filt);
+        filt.connect(gain);
+        gain.connect(ctx.destination);
+
+        filt.type = 'bandpass';
+        filt.frequency.value = 1200;
+        filt.Q.value = 0.8;
+
+        osc.type = 'triangle';
+        const freq = i === 0 ? 880 : 1046;
+        osc.frequency.setValueAtTime(freq, t + delay);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.97, t + delay + 0.18);
+
+        gain.gain.setValueAtTime(0, t + delay);
+        gain.gain.linearRampToValueAtTime(0.22, t + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.28);
+
+        osc.start(t + delay);
+        osc.stop(t + delay + 0.3);
+        if (i === 1) osc.onended = () => ctx.close();
+      });
+    }
+  } catch(e) { /* صامت لو ما في Web Audio */ }
+}
 
 /** إرسال رسالة إلى Firebase */
 export async function sendChatMessage(text) {
@@ -348,6 +338,7 @@ export async function sendChatMessage(text) {
       text:      text.trim(),
       timestamp: Date.now(),
     });
+    playMsgSound(true);  // صوت الإرسال
   } catch(e) { console.warn('Chat send error:', e); }
 }
 
@@ -364,10 +355,11 @@ function subscribeChat() {
 
     renderChatMessages(msgs);
 
-    // إشعار النقطة الحمراء إذا المستخدم مو على الصفحة
+    // إشعار الصوت والنقطة الحمراء عند وصول رسالة جديدة
     const newCount = msgs.filter(m => m.sender !== fbState.myId).length;
-    if (!chatState.isOnPage && newCount > chatState.lastMsgCount) {
-      showChatNotif();
+    if (newCount > chatState.lastMsgCount) {
+      playMsgSound(false);  // صوت الاستقبال دائماً
+      if (!chatState.isOnPage) showChatNotif();
     }
     chatState.lastMsgCount = newCount;
   });
@@ -435,8 +427,33 @@ function renderFriendTimeline(rawData) {
   const dateEl    = document.getElementById('cmpTLDate');
   if (!container) return;
 
+  // لو ما في timeline — نعرض ملخص الإحصائيات بدلاً من رسالة فارغة
   if (!rawData || !rawData.timeline || !rawData.timeline.length) {
-    container.innerHTML = '<p class="cmp-tl-empty">لا يوجد تايم لاين لليوم بعد...</p>';
+    const today = getTodayKey();
+    const isToday = rawData && rawData.date === today;
+    if (rawData && (rawData.studyTime || rawData.sessionsCount)) {
+      const items = [
+        { activity: 'دراسة',   duration: rawData.studyTime           || 0, time: '' },
+        { activity: 'استراحة', duration: rawData.breakTime           || 0, time: '' },
+        { activity: 'تسخيت',  duration: rawData.procrastinationTime || 0, time: '' },
+      ].filter(x => x.duration > 0);
+      if (items.length) {
+        if (dateEl && rawData.date) dateEl.textContent = rawData.date;
+        container.innerHTML = '<div style="font-size:.7rem;color:var(--text3);padding:6px 10px;text-align:center">ملخص إحصائيات اليوم</div>' +
+          items.map(entry => {
+            const color = activityColors[entry.activity] || '#a78bfa';
+            const h = Math.floor(entry.duration / 60), m = entry.duration % 60;
+            const durText = h > 0 ? `${h}س ${m}د` : `${m}د`;
+            return `<div class="cmp-tl-item" style="border-right-color:${color}">
+              <div class="cmp-tl-dot" style="background:${color}"></div>
+              <div class="cmp-tl-info"><div class="cmp-tl-act">${entry.activity}</div></div>
+              <div class="cmp-tl-dur">${durText}</div>
+            </div>`;
+          }).join('');
+        return;
+      }
+    }
+    container.innerHTML = '<p class="cmp-tl-empty">في انتظار بيانات الصديق...</p>';
     return;
   }
 
@@ -530,8 +547,6 @@ export async function syncToFirebaseWithTimeline() {
   } catch(e) { console.warn('Firebase sync+timeline error:', e); }
 }
 
-// استبدل window._fbSync بالنسخة الجديدة
-window._fbSync = syncToFirebaseWithTimeline;
 
 // ══════════════════════════════════════════════
 //   تهيئة واجهة الشات عند الاتصال
@@ -565,91 +580,81 @@ function initChatUI() {
   });
 }
 
-// ── Override connectComparison ──────────────────
-const _origConnect = connectComparison;
-
-/** نعيد تعريف connectComparison لتشمل الشات والتايم لاين */
-window._cmpConnectFull = function(myId, friendId) {
-  const ok = _origConnect(myId, friendId);
-  if (ok) {
-    subscribeChat();
-    subscribeFriendTimeline();
-    // تحديث اسم الصديق في بانل التايم لاين
-    const fnEl = document.getElementById('cmpFriendNameTL');
-    if (fnEl) fnEl.textContent = friendId;
-  }
-  return ok;
-};
-
-// ── Override disconnectComparison ────────────────
-const _origDisconnect = disconnectComparison;
-window._cmpDisconnectFull = function() {
-  _origDisconnect();
-  unsubscribeChat();
-  unsubscribeFriendTimeline();
-};
-
 // ── Init on DOMContentLoaded ─────────────────────
+
+// ══════════════════════════════════════════════
+//   تهيئة موحّدة عند تحميل الصفحة
+// ══════════════════════════════════════════════
+function updateStatus(msg, type) {
+  const el = document.getElementById('cmpStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'cmp-status' + (type ? ` cmp-status-${type}` : '');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-  initChatUI();
 
-  // بعد تحميل الصفحة، إذا كان الـ connect button موجوداً — نعيد توصيله
-  const connectBtn    = document.getElementById('cmpConnectBtn');
-  const disconnectBtn = document.getElementById('cmpDisconnectBtn');
-
-  if (connectBtn) {
-    // نزيل الـ listener القديم ونضيف واحداً جديداً يستخدم _cmpConnectFull
-    const newBtn = connectBtn.cloneNode(true);
-    connectBtn.parentNode.replaceChild(newBtn, connectBtn);
-
-    newBtn.addEventListener('click', () => {
-      const myId = document.getElementById('myUserId')?.value?.trim();
-      const frId = document.getElementById('friendUserId')?.value?.trim();
-      const statusEl = document.getElementById('cmpStatus');
-      const setStatus = (msg, type) => {
-        if (!statusEl) return;
-        statusEl.textContent = msg;
-        statusEl.className = 'cmp-status' + (type ? ` cmp-status-${type}` : '');
-      };
-
-      if (!myId || !frId)  { setStatus('أدخل المعرّفين أولاً', 'err'); return; }
-      if (myId === frId)   { setStatus('لا يمكن مقارنة نفسك!', 'err'); return; }
-
-      setStatus('جارٍ الاتصال...', 'loading');
-      const ok = window._cmpConnectFull(myId, frId);
-      if (ok) {
-        document.getElementById('cmpSetupCard').style.display = 'none';
-        document.getElementById('cmpBoard').style.display     = 'block';
-        document.getElementById('cmpMyName').textContent      = myId;
-        document.getElementById('cmpFriendName').textContent  = frId;
-        const fnEl = document.getElementById('cmpFriendNameTL');
-        if (fnEl) fnEl.textContent = frId;
-        document.getElementById('cmpIdsLabel').textContent    = `${myId} vs ${frId}`;
-        chatState.isOnPage = true;
-        setStatus('متصل ✓', 'ok');
-      } else {
-        setStatus('حدث خطأ في الاتصال', 'err');
-      }
-    });
-  }
-
-  if (disconnectBtn) {
-    const newDis = disconnectBtn.cloneNode(true);
-    disconnectBtn.parentNode.replaceChild(newDis, disconnectBtn);
-    newDis.addEventListener('click', () => {
-      window._cmpDisconnectFull();
-    });
-  }
-
-  // إعادة اتصال تلقائي إذا محفوظ
+  // ── استعادة الـ IDs المحفوظة ──
   const savedMy = localStorage.getItem('waqti_fbMyId');
   const savedFr = localStorage.getItem('waqti_fbFriendId');
-  if (savedMy && savedFr) {
-    setTimeout(() => {
-      const myInput = document.getElementById('myUserId');
-      const frInput = document.getElementById('friendUserId');
-      if (myInput) myInput.value = savedMy;
-      if (frInput) frInput.value = savedFr;
-    }, 100);
-  }
+  if (savedMy) { const el = document.getElementById('myUserId');     if(el) el.value = savedMy;  }
+  if (savedFr) { const el = document.getElementById('friendUserId'); if(el) el.value = savedFr; }
+
+  // ── توليد ID عشوائي ──
+  document.getElementById('genIdBtn')?.addEventListener('click', () => {
+    const id = 'user_' + Math.random().toString(36).slice(2,8);
+    const el = document.getElementById('myUserId');
+    if (el) { el.value = id; }
+  });
+
+  // ── تهيئة الشات ──
+  initChatUI();
+
+  // ── زر الاتصال الموحّد ──
+  document.getElementById('cmpConnectBtn')?.addEventListener('click', () => {
+    const myId = document.getElementById('myUserId')?.value?.trim();
+    const frId = document.getElementById('friendUserId')?.value?.trim();
+    if (!myId || !frId) { updateStatus('أدخل المعرّفين أولاً', 'err'); return; }
+    if (myId === frId)   { updateStatus('لا يمكن مقارنة نفسك!', 'err'); return; }
+
+    updateStatus('جارٍ الاتصال...', 'loading');
+    const ok = connectComparison(myId, frId);
+    if (ok) {
+      // بدء الشات والتايم لاين
+      subscribeChat();
+      subscribeFriendTimeline();
+
+      document.getElementById('cmpSetupCard').style.display = 'none';
+      document.getElementById('cmpBoard').style.display     = 'block';
+      document.getElementById('cmpMyName').textContent      = myId;
+      document.getElementById('cmpFriendName').textContent  = frId;
+      const fnEl = document.getElementById('cmpFriendNameTL');
+      if (fnEl) fnEl.textContent = frId;
+      document.getElementById('cmpIdsLabel').textContent    = `${myId} vs ${frId}`;
+      chatState.isOnPage = true;
+      updateStatus('متصل ✓', 'ok');
+    } else {
+      updateStatus('حدث خطأ في الاتصال', 'err');
+    }
+  });
+
+  // ── زر قطع الاتصال الموحّد ──
+  document.getElementById('cmpDisconnectBtn')?.addEventListener('click', () => {
+    disconnectComparison();
+    unsubscribeChat();
+    unsubscribeFriendTimeline();
+    chatState.isOnPage = false;
+  });
+
+  // ── تتبّع هل المستخدم على صفحة المقارنة ──
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      chatState.isOnPage = (tab === 'compare');
+      if (chatState.isOnPage) hideChatNotif();
+    });
+  });
 });
+
+// ── تصدير ──
+window._fbSync = syncToFirebaseWithTimeline;
