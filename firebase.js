@@ -327,3 +327,329 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ─── تصدير للاستخدام من script.js ────────────
 window._fbSync = syncToFirebase;
+// ══════════════════════════════════════════════
+//   المحادثة الفورية (Chat)
+// ══════════════════════════════════════════════
+
+const chatState = {
+  unsubChat: null,
+  lastMsgCount: 0,
+  isOnPage: false,   // هل المستخدم على صفحة المقارنة الآن؟
+};
+
+/** إرسال رسالة إلى Firebase */
+export async function sendChatMessage(text) {
+  if (!fbState.connected || !fbState.myId || !text.trim()) return;
+  const chatKey = [fbState.myId, fbState.friendId].sort().join('_');
+  const msgId   = Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  try {
+    await set(ref(db, `/chats/${chatKey}/${msgId}`), {
+      sender:    fbState.myId,
+      text:      text.trim(),
+      timestamp: Date.now(),
+    });
+  } catch(e) { console.warn('Chat send error:', e); }
+}
+
+/** بدء الاستماع للمحادثة */
+function subscribeChat() {
+  if (!fbState.myId || !fbState.friendId) return;
+  const chatKey = [fbState.myId, fbState.friendId].sort().join('_');
+
+  chatState.unsubChat = onValue(ref(db, `/chats/${chatKey}`), snap => {
+    const data = snap.val() || {};
+    const msgs = Object.entries(data)
+      .map(([id, m]) => ({ id, ...m }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    renderChatMessages(msgs);
+
+    // إشعار النقطة الحمراء إذا المستخدم مو على الصفحة
+    const newCount = msgs.filter(m => m.sender !== fbState.myId).length;
+    if (!chatState.isOnPage && newCount > chatState.lastMsgCount) {
+      showChatNotif();
+    }
+    chatState.lastMsgCount = newCount;
+  });
+}
+
+function unsubscribeChat() {
+  if (chatState.unsubChat) { chatState.unsubChat(); chatState.unsubChat = null; }
+}
+
+function renderChatMessages(msgs) {
+  const container = document.getElementById('cmpChatMessages');
+  if (!container) return;
+
+  if (!msgs.length) {
+    container.innerHTML = '<div class="cmp-chat-empty">لا توجد رسائل بعد — كن أول من يبدأ! 💪</div>';
+    return;
+  }
+
+  container.innerHTML = msgs.map(m => {
+    const isMine = m.sender === fbState.myId;
+    const time   = new Date(m.timestamp).toLocaleTimeString('ar-IQ', { hour12: true, hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="cmp-msg ${isMine ? 'mine' : 'theirs'}">
+        <div class="cmp-msg-bubble">${escapeHtml(m.text)}</div>
+        <div class="cmp-msg-meta">${isMine ? 'أنت' : m.sender} · ${time}</div>
+      </div>`;
+  }).join('');
+
+  // تمرير للأسفل
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showChatNotif() {
+  const dot = document.getElementById('compareNotifDot');
+  if (dot) dot.style.display = 'inline-block';
+}
+
+function hideChatNotif() {
+  const dot = document.getElementById('compareNotifDot');
+  if (dot) dot.style.display = 'none';
+  chatState.lastMsgCount = 0;
+}
+
+// ══════════════════════════════════════════════
+//   تايم لاين الخصم (Friend Timeline)
+// ══════════════════════════════════════════════
+
+/** ألوان الأنشطة */
+const activityColors = {
+  'دراسة':   '#4ade80',
+  'استراحة': '#60a5fa',
+  'صلاة':    '#f59e0b',
+  'أكل':     '#f97316',
+  'تسخيت':  '#f43f5e',
+  'أخرى':   '#a78bfa',
+};
+
+/** رسم تايم لاين الصديق — يُستدعى عند تحديث بيانات الصديق في Firebase */
+function renderFriendTimeline(rawData) {
+  const container = document.getElementById('cmpFriendTimeline');
+  const dateEl    = document.getElementById('cmpTLDate');
+  if (!container) return;
+
+  if (!rawData || !rawData.timeline || !rawData.timeline.length) {
+    container.innerHTML = '<p class="cmp-tl-empty">لا يوجد تايم لاين لليوم بعد...</p>';
+    return;
+  }
+
+  // تحديث التاريخ
+  if (dateEl && rawData.date) dateEl.textContent = rawData.date;
+
+  container.innerHTML = rawData.timeline.map(entry => {
+    const color = activityColors[entry.activity] || '#a78bfa';
+    const h = Math.floor((entry.duration || 0) / 60);
+    const m = (entry.duration || 0) % 60;
+    const durText = h > 0 ? `${h}س ${m}د` : `${m}د`;
+    const time = entry.time || '';
+    return `
+      <div class="cmp-tl-item" style="border-right-color:${color}">
+        <div class="cmp-tl-dot" style="background:${color}"></div>
+        <div class="cmp-tl-info">
+          <div class="cmp-tl-act">${escapeHtml(entry.activity)}</div>
+          <div class="cmp-tl-time">${time}</div>
+        </div>
+        <div class="cmp-tl-dur">${durText}</div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+//   توصيل التايم لاين ببيانات Firebase الحية
+// ══════════════════════════════════════════════
+
+/**
+ * نضيف hook على fbState.friendData عند كل تحديث من onValue الصديق
+ * نستخدم wrapper يطلب تفاصيل اليوم (timeline) من Firebase
+ */
+let _friendTimelineUnsub = null;
+
+function subscribeFriendTimeline() {
+  if (!fbState.friendId) return;
+  _friendTimelineUnsub = onValue(
+    ref(db, `/users/${fbState.friendId}/timeline`),
+    snap => {
+      const tl = snap.val();
+      // نجمع مع بيانات الصديق الأخرى
+      const combined = { ...(fbState.friendData || {}), timeline: tl ? Object.values(tl) : [] };
+      renderFriendTimeline(combined);
+    }
+  );
+}
+
+function unsubscribeFriendTimeline() {
+  if (_friendTimelineUnsub) { _friendTimelineUnsub(); _friendTimelineUnsub = null; }
+}
+
+// ══════════════════════════════════════════════
+//   رفع تايم لاين اليوم مع بيانات المستخدم
+// ══════════════════════════════════════════════
+
+/** نضيف تايم لاين اليوم عند الرفع لـ Firebase */
+const _origSync = syncToFirebase;
+
+export async function syncToFirebaseWithTimeline() {
+  if (!fbState.connected || !fbState.myId) return;
+  try {
+    const stats    = calcTodayStats();
+    const today    = getTodayKey();
+    const raw      = localStorage.getItem(`waqti_${today}`);
+    const entries  = raw ? JSON.parse(raw) : [];
+
+    // نبني الـ timeline بشكل مبسّط
+    const timeline = entries.map((e, i) => ({
+      activity: e.activity || 'أخرى',
+      duration: e.duration || 0,
+      time:     e.time || '',
+    }));
+
+    // نرفع الإحصائيات
+    await update(ref(db, `/users/${fbState.myId}`), {
+      studyTime:           stats.studyTime,
+      breakTime:           stats.breakTime,
+      focusScore:          stats.focusScore,
+      sessionsCount:       stats.sessionsCount,
+      streak:              stats.streak,
+      procrastinationTime: stats.procrastination,
+      date:                today,
+      updatedAt:           Date.now(),
+    });
+
+    // نرفع التايم لاين كـ object مفهرس
+    const tlObj = {};
+    timeline.forEach((t, i) => { tlObj[i] = t; });
+    await set(ref(db, `/users/${fbState.myId}/timeline`), tlObj);
+
+  } catch(e) { console.warn('Firebase sync+timeline error:', e); }
+}
+
+// استبدل window._fbSync بالنسخة الجديدة
+window._fbSync = syncToFirebaseWithTimeline;
+
+// ══════════════════════════════════════════════
+//   تهيئة واجهة الشات عند الاتصال
+// ══════════════════════════════════════════════
+
+function initChatUI() {
+  const input   = document.getElementById('cmpChatInput');
+  const sendBtn = document.getElementById('cmpChatSendBtn');
+
+  const doSend = () => {
+    if (!input) return;
+    const txt = input.value.trim();
+    if (!txt) return;
+    sendChatMessage(txt);
+    input.value = '';
+    input.focus();
+  };
+
+  sendBtn?.addEventListener('click', doSend);
+  input?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
+  });
+
+  // تتبّع هل المستخدم على صفحة المقارنة
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      chatState.isOnPage = (tab === 'compare');
+      if (chatState.isOnPage) hideChatNotif();
+    });
+  });
+}
+
+// ── Override connectComparison ──────────────────
+const _origConnect = connectComparison;
+
+/** نعيد تعريف connectComparison لتشمل الشات والتايم لاين */
+window._cmpConnectFull = function(myId, friendId) {
+  const ok = _origConnect(myId, friendId);
+  if (ok) {
+    subscribeChat();
+    subscribeFriendTimeline();
+    // تحديث اسم الصديق في بانل التايم لاين
+    const fnEl = document.getElementById('cmpFriendNameTL');
+    if (fnEl) fnEl.textContent = friendId;
+  }
+  return ok;
+};
+
+// ── Override disconnectComparison ────────────────
+const _origDisconnect = disconnectComparison;
+window._cmpDisconnectFull = function() {
+  _origDisconnect();
+  unsubscribeChat();
+  unsubscribeFriendTimeline();
+};
+
+// ── Init on DOMContentLoaded ─────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initChatUI();
+
+  // بعد تحميل الصفحة، إذا كان الـ connect button موجوداً — نعيد توصيله
+  const connectBtn    = document.getElementById('cmpConnectBtn');
+  const disconnectBtn = document.getElementById('cmpDisconnectBtn');
+
+  if (connectBtn) {
+    // نزيل الـ listener القديم ونضيف واحداً جديداً يستخدم _cmpConnectFull
+    const newBtn = connectBtn.cloneNode(true);
+    connectBtn.parentNode.replaceChild(newBtn, connectBtn);
+
+    newBtn.addEventListener('click', () => {
+      const myId = document.getElementById('myUserId')?.value?.trim();
+      const frId = document.getElementById('friendUserId')?.value?.trim();
+      const statusEl = document.getElementById('cmpStatus');
+      const setStatus = (msg, type) => {
+        if (!statusEl) return;
+        statusEl.textContent = msg;
+        statusEl.className = 'cmp-status' + (type ? ` cmp-status-${type}` : '');
+      };
+
+      if (!myId || !frId)  { setStatus('أدخل المعرّفين أولاً', 'err'); return; }
+      if (myId === frId)   { setStatus('لا يمكن مقارنة نفسك!', 'err'); return; }
+
+      setStatus('جارٍ الاتصال...', 'loading');
+      const ok = window._cmpConnectFull(myId, frId);
+      if (ok) {
+        document.getElementById('cmpSetupCard').style.display = 'none';
+        document.getElementById('cmpBoard').style.display     = 'block';
+        document.getElementById('cmpMyName').textContent      = myId;
+        document.getElementById('cmpFriendName').textContent  = frId;
+        const fnEl = document.getElementById('cmpFriendNameTL');
+        if (fnEl) fnEl.textContent = frId;
+        document.getElementById('cmpIdsLabel').textContent    = `${myId} vs ${frId}`;
+        chatState.isOnPage = true;
+        setStatus('متصل ✓', 'ok');
+      } else {
+        setStatus('حدث خطأ في الاتصال', 'err');
+      }
+    });
+  }
+
+  if (disconnectBtn) {
+    const newDis = disconnectBtn.cloneNode(true);
+    disconnectBtn.parentNode.replaceChild(newDis, disconnectBtn);
+    newDis.addEventListener('click', () => {
+      window._cmpDisconnectFull();
+    });
+  }
+
+  // إعادة اتصال تلقائي إذا محفوظ
+  const savedMy = localStorage.getItem('waqti_fbMyId');
+  const savedFr = localStorage.getItem('waqti_fbFriendId');
+  if (savedMy && savedFr) {
+    setTimeout(() => {
+      const myInput = document.getElementById('myUserId');
+      const frInput = document.getElementById('friendUserId');
+      if (myInput) myInput.value = savedMy;
+      if (frInput) frInput.value = savedFr;
+    }, 100);
+  }
+});
