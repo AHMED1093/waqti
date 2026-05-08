@@ -367,7 +367,13 @@ function subscribeChat() {
 
 function unsubscribeChat() {
   if (chatState.unsubChat) { chatState.unsubChat(); chatState.unsubChat = null; }
+  _renderedMsgIds.clear();
+  const container = document.getElementById('cmpChatMessages');
+  if (container) container.innerHTML = '<div class="cmp-chat-empty">لا توجد رسائل بعد — كن أول من يبدأ! 💪</div>';
 }
+
+// تتبع الرسائل المعروضة لتجنب إعادة البناء الكامل
+const _renderedMsgIds = new Set();
 
 function renderChatMessages(msgs) {
   const container = document.getElementById('cmpChatMessages');
@@ -375,21 +381,36 @@ function renderChatMessages(msgs) {
 
   if (!msgs.length) {
     container.innerHTML = '<div class="cmp-chat-empty">لا توجد رسائل بعد — كن أول من يبدأ! 💪</div>';
+    _renderedMsgIds.clear();
     return;
   }
 
-  container.innerHTML = msgs.map(m => {
+  // إزالة placeholder لو موجود
+  const empty = container.querySelector('.cmp-chat-empty');
+  if (empty) empty.remove();
+
+  // فقط أضف الرسائل الجديدة (incremental)
+  let addedAny = false;
+  msgs.forEach(m => {
+    if (_renderedMsgIds.has(m.id)) return;
+    _renderedMsgIds.add(m.id);
+
     const isMine = m.sender === fbState.myId;
     const time   = new Date(m.timestamp).toLocaleTimeString('ar-IQ', { hour12: true, hour: '2-digit', minute: '2-digit' });
-    return `
-      <div class="cmp-msg ${isMine ? 'mine' : 'theirs'}">
-        <div class="cmp-msg-bubble">${escapeHtml(m.text)}</div>
-        <div class="cmp-msg-meta">${isMine ? 'أنت' : m.sender} · ${time}</div>
-      </div>`;
-  }).join('');
+    const el     = document.createElement('div');
+    el.className = `cmp-msg ${isMine ? 'mine' : 'theirs'}`;
+    el.dataset.msgId = m.id;
+    el.innerHTML = `
+      <div class="cmp-msg-bubble">${escapeHtml(m.text)}</div>
+      <div class="cmp-msg-meta">${isMine ? 'أنت' : m.sender} · ${time}</div>`;
+    container.appendChild(el);
+    addedAny = true;
+  });
 
-  // تمرير للأسفل
-  container.scrollTop = container.scrollHeight;
+  // تمرير للأسفل فقط لو في رسائل جديدة
+  if (addedAny) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 function escapeHtml(str) {
@@ -460,18 +481,23 @@ function renderFriendTimeline(rawData) {
   // تحديث التاريخ
   if (dateEl && rawData.date) dateEl.textContent = rawData.date;
 
-  container.innerHTML = rawData.timeline.map(entry => {
+  // الأحدث أولاً
+  const sorted = [...rawData.timeline].reverse();
+
+  container.innerHTML = sorted.map(entry => {
     const color = activityColors[entry.activity] || '#a78bfa';
     const h = Math.floor((entry.duration || 0) / 60);
     const m = (entry.duration || 0) % 60;
     const durText = h > 0 ? `${h}س ${m}د` : `${m}د`;
-    const time = entry.time || '';
+    const timeRange = (entry.start && entry.end)
+      ? `${entry.start} ← ${entry.end}`
+      : (entry.start || entry.end || '');
     return `
       <div class="cmp-tl-item" style="border-right-color:${color}">
         <div class="cmp-tl-dot" style="background:${color}"></div>
         <div class="cmp-tl-info">
           <div class="cmp-tl-act">${escapeHtml(entry.activity)}</div>
-          <div class="cmp-tl-time">${time}</div>
+          ${timeRange ? `<div class="cmp-tl-time">${timeRange}</div>` : ''}
         </div>
         <div class="cmp-tl-dur">${durText}</div>
       </div>`;
@@ -520,11 +546,12 @@ export async function syncToFirebaseWithTimeline() {
     const raw      = localStorage.getItem(`waqti_${today}`);
     const entries  = raw ? JSON.parse(raw) : [];
 
-    // نبني الـ timeline بشكل مبسّط
+    // نبني الـ timeline مع وقت البداية والنهاية
     const timeline = entries.map((e, i) => ({
       activity: e.activity || 'أخرى',
       duration: e.duration || 0,
-      time:     e.time || '',
+      start:    e.start    || '',
+      end:      e.end      || '',
     }));
 
     // نرفع الإحصائيات
