@@ -19,7 +19,7 @@
       <button class="tab-btn" data-tab="dashboard">الداش بورد <kbd>Alt+2</kbd></button>
       <button class="tab-btn" data-tab="plan">الخطة <kbd>Alt+3</kbd></button>
       <button class="tab-btn" data-tab="history">السجل <kbd>Alt+4</kbd></button>
-      <button class="tab-btn" data-tab="compare">⚔️ المقارنة <kbd>Alt+5</kbd></button>
+      <button class="tab-btn" data-tab="compare">⚔️ المقارنة <kbd>Alt+5</kbd><span class="tab-notif-dot" id="compareNotifDot" style="display:none"></span></button>
     </nav>
     <div class="topbar-right">
       <button class="icon-btn" id="themeToggle">🌙 <kbd>T</kbd></button>
@@ -403,54 +403,90 @@
         <button class="cmp-disconnect-btn" id="cmpDisconnectBtn">✕ قطع</button>
       </div>
 
-      <!-- بطاقة الفائز -->
-      <div class="cmp-winner-card" id="cmpWinnerCard">
-        <span class="cmp-winner-text" id="cmpWinnerText">جاري التحميل...</span>
-      </div>
+      <!-- تخطيط ثلاثي الأعمدة -->
+      <div class="cmp-three-col">
 
-      <!-- شبكة المقارنة -->
-      <div class="cmp-grid">
-
-        <!-- عناوين -->
-        <div class="cmp-col-header cmp-mine">
-          <div class="cmp-avatar">🧑</div>
-          <div class="cmp-player-name" id="cmpMyName">أنا</div>
-        </div>
-        <div class="cmp-col-header cmp-stat-title">الإحصائية</div>
-        <div class="cmp-col-header cmp-friend">
-          <div class="cmp-avatar">👤</div>
-          <div class="cmp-player-name" id="cmpFriendName">الصديق</div>
+        <!-- ══ العمود الأيسر: تايم لاين الخصم ══ -->
+        <div class="cmp-side-panel cmp-friend-timeline-panel">
+          <div class="cmp-side-title">
+            <span>👤 تايم لاين <span id="cmpFriendNameTL">الصديق</span></span>
+            <span class="cmp-tl-date" id="cmpTLDate"></span>
+          </div>
+          <div class="cmp-friend-timeline" id="cmpFriendTimeline">
+            <p class="cmp-tl-empty">في انتظار بيانات الصديق...</p>
+          </div>
         </div>
 
-        <!-- وقت الدراسة -->
-        <div class="cmp-val cmp-mine" id="cv-myStudy">—</div>
-        <div class="cmp-stat-name">📚 الدراسة</div>
-        <div class="cmp-val cmp-friend" id="cv-frStudy">—</div>
+        <!-- ══ العمود الأوسط: المقارنة ══ -->
+        <div class="cmp-center-col">
+          <!-- بطاقة الفائز -->
+          <div class="cmp-winner-card" id="cmpWinnerCard">
+            <span class="cmp-winner-text" id="cmpWinnerText">جاري التحميل...</span>
+          </div>
 
-        <!-- الستريك -->
-        <div class="cmp-val cmp-mine" id="cv-myStreak">—</div>
-        <div class="cmp-stat-name">🔥 الستريك</div>
-        <div class="cmp-val cmp-friend" id="cv-frStreak">—</div>
+          <!-- شبكة المقارنة -->
+          <div class="cmp-grid">
+            <!-- عناوين -->
+            <div class="cmp-col-header cmp-mine">
+              <div class="cmp-avatar">🧑</div>
+              <div class="cmp-player-name" id="cmpMyName">أنا</div>
+            </div>
+            <div class="cmp-col-header cmp-stat-title">الإحصائية</div>
+            <div class="cmp-col-header cmp-friend">
+              <div class="cmp-avatar">👤</div>
+              <div class="cmp-player-name" id="cmpFriendName">الصديق</div>
+            </div>
 
-        <!-- Focus Score -->
-        <div class="cmp-val cmp-mine" id="cv-myScore">—</div>
-        <div class="cmp-stat-name">⚡ Focus Score</div>
-        <div class="cmp-val cmp-friend" id="cv-frScore">—</div>
+            <!-- وقت الدراسة -->
+            <div class="cmp-val cmp-mine" id="cv-myStudy">—</div>
+            <div class="cmp-stat-name">📚 الدراسة</div>
+            <div class="cmp-val cmp-friend" id="cv-frStudy">—</div>
 
-        <!-- الجلسات -->
-        <div class="cmp-val cmp-mine" id="cv-mySessions">—</div>
-        <div class="cmp-stat-name">🔄 الجلسات</div>
-        <div class="cmp-val cmp-friend" id="cv-frSessions">—</div>
+            <!-- الستريك -->
+            <div class="cmp-val cmp-mine" id="cv-myStreak">—</div>
+            <div class="cmp-stat-name">🔥 الستريك</div>
+            <div class="cmp-val cmp-friend" id="cv-frStreak">—</div>
 
-        <!-- التسخيت -->
-        <div class="cmp-val cmp-mine" id="cv-myProc">—</div>
-        <div class="cmp-stat-name">📱 التسخيت</div>
-        <div class="cmp-val cmp-friend" id="cv-frProc">—</div>
+            <!-- Focus Score -->
+            <div class="cmp-val cmp-mine" id="cv-myScore">—</div>
+            <div class="cmp-stat-name">⚡ Focus Score</div>
+            <div class="cmp-val cmp-friend" id="cv-frScore">—</div>
 
-      </div>
+            <!-- الجلسات -->
+            <div class="cmp-val cmp-mine" id="cv-mySessions">—</div>
+            <div class="cmp-stat-name">🔄 الجلسات</div>
+            <div class="cmp-val cmp-friend" id="cv-frSessions">—</div>
 
-      <!-- آخر تحديث -->
-      <div class="cmp-last-update" id="cmpLastUpdate">لا يوجد تحديث بعد</div>
+            <!-- التسخيت -->
+            <div class="cmp-val cmp-mine" id="cv-myProc">—</div>
+            <div class="cmp-stat-name">📱 التسخيت</div>
+            <div class="cmp-val cmp-friend" id="cv-frProc">—</div>
+          </div>
+
+          <!-- آخر تحديث -->
+          <div class="cmp-last-update" id="cmpLastUpdate">لا يوجد تحديث بعد</div>
+        </div>
+
+        <!-- ══ العمود الأيمن: المحادثة ══ -->
+        <div class="cmp-side-panel cmp-chat-panel">
+          <div class="cmp-side-title">
+            <span>💬 المحادثة</span>
+            <span class="cmp-chat-online" id="cmpChatOnline">متصل</span>
+          </div>
+          <div class="cmp-chat-messages" id="cmpChatMessages">
+            <div class="cmp-chat-empty">لا توجد رسائل بعد — كن أول من يبدأ! 💪</div>
+          </div>
+          <div class="cmp-chat-input-row">
+            <input type="text" id="cmpChatInput" class="cmp-chat-input"
+                   placeholder="اكتب رسالة..." maxlength="200" autocomplete="off"/>
+            <button class="cmp-chat-send-btn" id="cmpChatSendBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /cmp-three-col -->
+
     </div>
 
   </section>
