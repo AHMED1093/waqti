@@ -2210,3 +2210,40 @@ window.switchTab = function(tabName) {
 document.addEventListener('DOMContentLoaded', () => {
   setupPlanEvents();
 });
+// ==========================================
+// مرايا التايمر الرئيسي في صفحة المقارنة
+// ==========================================
+(function() {
+  const CIRC = 414.7;
+
+  function syncMirror() {
+    const display  = document.getElementById('cmpMirrorDisplay');
+    const arc      = document.getElementById('cmpMirrorArc');
+    const status   = document.getElementById('cmpMirrorStatus');
+    const interval = document.getElementById('cmpMirrorInterval');
+    if (!display) return;
+
+    const m = Math.floor(state.remaining / 60);
+    const s = state.remaining % 60;
+    display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    const progress = 1 - state.remaining / state.totalSeconds;
+    arc.style.strokeDashoffset = CIRC * (1 - progress);
+
+    interval.textContent = state.intervalNum;
+
+    if (state.running) {
+      status.textContent = '🟢 يعمل';
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = '⏸ موقوف';
+      status.style.color = 'var(--text3)';
+    }
+  }
+
+  // شغّل المزامنة كل ثانية دائماً
+  setInterval(syncMirror, 1000);
+
+  // زامن فوراً عند تحميل الصفحة
+  document.addEventListener('DOMContentLoaded', syncMirror);
+})();
