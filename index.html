@@ -465,6 +465,30 @@
 
           <!-- آخر تحديث -->
           <div class="cmp-last-update" id="cmpLastUpdate">لا يوجد تحديث بعد</div>
+
+          <!-- ══ مرايا التايمر الرئيسي ══ -->
+          <div class="cmp-timer-mirror" id="cmpTimerMirror">
+            <div class="cmp-mirror-title">⏱ التايمر الرئيسي</div>
+            <div class="cmp-mirror-ring-wrap">
+              <svg class="cmp-ring-svg" viewBox="0 0 160 160">
+                <defs>
+                  <linearGradient id="cmpRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#6c63ff"/>
+                    <stop offset="100%" stop-color="#60a5fa"/>
+                  </linearGradient>
+                </defs>
+                <circle class="cmp-ring-bg" cx="80" cy="80" r="66"/>
+                <circle class="cmp-ring-arc" id="cmpMirrorArc" cx="80" cy="80" r="66"
+                  stroke-dasharray="414.7" stroke-dashoffset="414.7"/>
+              </svg>
+              <div class="cmp-timer-inner">
+                <div class="cmp-mirror-display" id="cmpMirrorDisplay">--:--</div>
+                <div class="cmp-mirror-status" id="cmpMirrorStatus">موقوف</div>
+                <div class="cmp-timer-lbl">إنتيرفال <span id="cmpMirrorInterval">1</span></div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ══ العمود الأيمن: المحادثة ══ -->
