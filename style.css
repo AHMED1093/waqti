@@ -2280,3 +2280,69 @@ canvas { max-width:100%; }
   0%,60%,100% { transform: translateY(0); }
   30%          { transform: translateY(-4px); }
 }
+/* ====== مرايا التايمر في صفحة المقارنة ====== */
+.cmp-timer-mirror {
+  margin-top: 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  pointer-events: none; /* للعرض فقط — لا تفاعل */
+}
+.cmp-mirror-title {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cmp-mirror-ring-wrap {
+  position: relative;
+  width: 120px; height: 120px;
+  display: flex; align-items: center; justify-content: center;
+}
+.cmp-ring-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.cmp-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 8;
+}
+.cmp-ring-arc {
+  fill: none;
+  stroke: url(#cmpRingGrad);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .9s linear;
+}
+.cmp-timer-inner {
+  position: relative;
+  text-align: center;
+  z-index: 1;
+}
+.cmp-mirror-display {
+  font-size: 1.55rem;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: .03em;
+  line-height: 1;
+}
+.cmp-mirror-status {
+  font-size: .68rem;
+  margin-top: 3px;
+  font-weight: 600;
+}
+.cmp-timer-lbl {
+  font-size: .62rem;
+  color: var(--text3);
+  margin-top: 2px;
+}
