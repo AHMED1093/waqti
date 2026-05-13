@@ -351,10 +351,11 @@ canvas { max-width:100%; }
 
 .timeline {
   display:flex; flex-direction:column; gap:5px;
-  overflow:hidden; transition:max-height .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
-  max-height:2000px; opacity:1;
+  overflow-y:auto; overflow-x:hidden;
+  transition:max-height .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  max-height:600px; opacity:1;
 }
-.timeline.collapsed { max-height:0; opacity:0; pointer-events:none; }
+.timeline.collapsed { max-height:0 !important; opacity:0; pointer-events:none; overflow:hidden; }
 
 /* زر ريست معطّل أثناء الشغل */
 .ctrl-btn.reset:disabled {
