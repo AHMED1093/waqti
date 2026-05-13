@@ -631,7 +631,8 @@ function renderTimeline(data) {
     container.innerHTML = '<p class="empty-msg">لا توجد بيانات لهذا اليوم</p>';
     return;
   }
-  data.forEach(entry => {
+  const reversed = [...data].reverse();
+  reversed.forEach(entry => {
     const div = document.createElement('div');
     div.className = 'tl-item';
     div.style.setProperty('--c', entry.color || COLORS[entry.activity] || COLORS['أخرى']);
