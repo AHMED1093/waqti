@@ -1,160 +1,220 @@
 /**
- * habits.js — نظام العادات
- * منطق موحّد وبسيط لكل أنواع العادات
+ * habits.js — نظام العادات (إعادة بناء كاملة)
+ * ✅ مستقل 100% — لا يعتمد على أي دالة خارجية
+ * ✅ يشتغل على الاستضافة وعلى localhost بدون مشاكل
  */
 
-// ─────────────────────────────────────────
-// 1. بيانات افتراضية
-// ─────────────────────────────────────────
+// ══════════════════════════════════════════
+// 0. دوال التاريخ المحلية (مستقلة)
+// ══════════════════════════════════════════
 
-const HABITS_STORAGE_KEY = 'waqti_habits_list';
-const HABITS_LOG_KEY     = 'waqti_habits_log';
-const HABITS_ACHIEVE_KEY = 'waqti_habits_achievements';
+function _hbLocalDateKey(d) {
+  const y   = d.getFullYear();
+  const m   = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
-const DEFAULT_HABITS = [
-  { id:'h_study', name:'دراسة',  icon:'📚', color:'#4ade80', type:'daily', targetMinutes:360, targetType:'min', linkedActivity:'دراسة',  createdAt:Date.now() },
-  { id:'h_waste', name:'تسخيت', icon:'📱', color:'#f43f5e', type:'daily', targetMinutes:120, targetType:'max', linkedActivity:'تسخيت', createdAt:Date.now() },
-  { id:'h_read',  name:'قراءة', icon:'📖', color:'#60a5fa', type:'daily', targetMinutes:30,  targetType:'min', linkedActivity:null,      createdAt:Date.now() },
+function _hbTodayKey() {
+  return _hbLocalDateKey(new Date());
+}
+
+// ══════════════════════════════════════════
+// 1. مفاتيح localStorage والبيانات الافتراضية
+// ══════════════════════════════════════════
+
+const HB_LIST_KEY    = 'waqti_habits_list';
+const HB_LOG_KEY     = 'waqti_habits_log';
+const HB_ACHIEVE_KEY = 'waqti_habits_achievements';
+
+const HB_DEFAULTS = [
+  {
+    id: 'h_study',
+    name: 'دراسة',
+    icon: '📚',
+    color: '#4ade80',
+    type: 'daily',
+    targetMinutes: 360,
+    targetType: 'min',
+    linkedActivity: 'دراسة',
+    createdAt: Date.now(),
+  },
+  {
+    id: 'h_waste',
+    name: 'تسخيت',
+    icon: '📱',
+    color: '#f43f5e',
+    type: 'daily',
+    targetMinutes: 120,
+    targetType: 'max',
+    linkedActivity: 'تسخيت',
+    createdAt: Date.now(),
+  },
+  {
+    id: 'h_read',
+    name: 'قراءة',
+    icon: '📖',
+    color: '#60a5fa',
+    type: 'daily',
+    targetMinutes: 30,
+    targetType: 'min',
+    linkedActivity: null,
+    createdAt: Date.now(),
+  },
 ];
 
-// ─────────────────────────────────────────
-// 2. localStorage
-// ─────────────────────────────────────────
+// ══════════════════════════════════════════
+// 2. localStorage — قراءة وحفظ
+// ══════════════════════════════════════════
 
-function loadHabits() {
-  const s = localStorage.getItem(HABITS_STORAGE_KEY);
-  if (s) return JSON.parse(s);
-  saveHabits(DEFAULT_HABITS);
-  return DEFAULT_HABITS;
-}
-function saveHabits(h)   { localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(h)); }
-
-function loadHabitsLog() {
-  const s = localStorage.getItem(HABITS_LOG_KEY);
-  return s ? JSON.parse(s) : {};
-}
-function saveHabitsLog(l) { localStorage.setItem(HABITS_LOG_KEY, JSON.stringify(l)); }
-
-function loadAchievements()  { const s = localStorage.getItem(HABITS_ACHIEVE_KEY); return s ? JSON.parse(s) : {}; }
-function saveAchievements(a) { localStorage.setItem(HABITS_ACHIEVE_KEY, JSON.stringify(a)); }
-
-// ─────────────────────────────────────────
-// 3. حسابات — منطق موحّد وواضح
-// ─────────────────────────────────────────
-
-/** دقائق مسجّلة لعادة في يوم */
-function getProgress(habit, dateKey) {
-  return (loadHabitsLog()[dateKey] || {})[habit.id] || 0;
+function _hbLoadHabits() {
+  try {
+    const s = localStorage.getItem(HB_LIST_KEY);
+    if (s) return JSON.parse(s);
+  } catch (e) { /* تجاهل */ }
+  _hbSaveHabits(HB_DEFAULTS);
+  return JSON.parse(JSON.stringify(HB_DEFAULTS)); // نسخة منفصلة
 }
 
-/** إضافة دقائق */
-function addMins(habitId, mins, dateKey) {
-  const log = loadHabitsLog();
+function _hbSaveHabits(list) {
+  localStorage.setItem(HB_LIST_KEY, JSON.stringify(list));
+}
+
+function _hbLoadLog() {
+  try {
+    const s = localStorage.getItem(HB_LOG_KEY);
+    return s ? JSON.parse(s) : {};
+  } catch (e) { return {}; }
+}
+
+function _hbSaveLog(log) {
+  localStorage.setItem(HB_LOG_KEY, JSON.stringify(log));
+}
+
+function _hbLoadAchievements() {
+  try {
+    const s = localStorage.getItem(HB_ACHIEVE_KEY);
+    return s ? JSON.parse(s) : {};
+  } catch (e) { return {}; }
+}
+
+function _hbSaveAchievements(a) {
+  localStorage.setItem(HB_ACHIEVE_KEY, JSON.stringify(a));
+}
+
+// ══════════════════════════════════════════
+// 3. منطق الحسابات
+// ══════════════════════════════════════════
+
+/** دقائق مسجّلة لعادة في يوم معيّن */
+function _hbGetProgress(habitId, dateKey) {
+  const log = _hbLoadLog();
+  return (log[dateKey] || {})[habitId] || 0;
+}
+
+/** إضافة دقائق لعادة في يوم معيّن */
+function _hbAddMins(habitId, mins, dateKey) {
+  const log = _hbLoadLog();
   if (!log[dateKey]) log[dateKey] = {};
   log[dateKey][habitId] = (log[dateKey][habitId] || 0) + mins;
-  saveHabitsLog(log);
+  _hbSaveLog(log);
 }
 
 /**
  * حالة العادة:
  *   'done'     → min: وصل الهدف | max: سُجّل وقت ولم يتجاوز الحد
  *   'exceeded' → max فقط: تجاوز الحد
- *   'pending'  → لسه
+ *   'pending'  → لم يُنجز بعد
  */
-function habitStatus(habit, dateKey) {
-  const p = getProgress(habit, dateKey);
+function _hbStatus(habit, dateKey) {
+  const p = _hbGetProgress(habit.id, dateKey);
   if (habit.targetType === 'min') {
     return p >= habit.targetMinutes ? 'done' : 'pending';
-  } else { // max
-    if (p === 0)                   return 'pending';
-    if (p > habit.targetMinutes)   return 'exceeded';
+  } else {
+    if (p === 0)                 return 'pending';
+    if (p > habit.targetMinutes) return 'exceeded';
     return 'done';
   }
 }
 
-/**
- * نسبة شريط التقدم 0-100
- * — للنوعين: الشريط يمتلئ مع تراكم الوقت (لا عكس أبداً)
- * — عند exceeded يبقى 100
- */
-function progressPct(habit, dateKey) {
-  const p = getProgress(habit, dateKey);
+/** نسبة شريط التقدم 0-100 */
+function _hbProgressPct(habit, dateKey) {
+  const p = _hbGetProgress(habit.id, dateKey);
   if (!habit.targetMinutes) return 0;
   return Math.min(100, Math.round((p / habit.targetMinutes) * 100));
 }
 
 /** لون شريط التقدم */
-function barColor(habit, dateKey) {
-  const st  = habitStatus(habit, dateKey);
-  const pct = progressPct(habit, dateKey);
+function _hbBarColor(habit, dateKey) {
+  const st  = _hbStatus(habit, dateKey);
+  const pct = _hbProgressPct(habit, dateKey);
   if (habit.targetType === 'max') {
-    if (st === 'exceeded') return '#f43f5e';   // أحمر - تجاوز
-    if (pct >= 75)         return '#f59e0b';   // برتقالي - تحذير
-    return habit.color;
+    if (st === 'exceeded') return '#f43f5e';
+    if (pct >= 75)         return '#f59e0b';
   }
   return habit.color;
 }
 
-/** نص تقدم البطاقة */
-function progressLabel(habit, dateKey) {
-  const p  = getProgress(habit, dateKey);
-  const st = habitStatus(habit, dateKey);
-  if (habit.targetType === 'min') {
-    return `${fmtMin(p)} / ${fmtMin(habit.targetMinutes)}`;
-  } else {
-    if (p === 0)             return `0 د / ${fmtMin(habit.targetMinutes)}`;
-    if (st === 'exceeded')   return `⚠️ ${fmtMin(p)} — تجاوزت بـ ${fmtMin(p - habit.targetMinutes)}`;
-    return `${fmtMin(p)} / ${fmtMin(habit.targetMinutes)} (متبقي ${fmtMin(habit.targetMinutes - p)})`;
-  }
-}
-
-function fmtMin(m) {
+/** تنسيق الدقائق → نص قابل للقراءة */
+function _hbFmtMin(m) {
   if (!m || m <= 0) return '0 د';
   if (m < 60) return `${m} د`;
   const h = Math.floor(m / 60), r = m % 60;
   return r ? `${h}س ${r}د` : `${h} ساعة`;
 }
 
-/** streak — أيام متتالية ناجحة */
-function habitStreak(habit) {
-  const log   = loadHabitsLog();
-  const today = new Date(); today.setHours(0,0,0,0);
-  let streak  = 0;
+/** نص تقدم البطاقة */
+function _hbProgressLabel(habit, dateKey) {
+  const p  = _hbGetProgress(habit.id, dateKey);
+  const st = _hbStatus(habit, dateKey);
+  if (habit.targetType === 'min') {
+    return `${_hbFmtMin(p)} / ${_hbFmtMin(habit.targetMinutes)}`;
+  } else {
+    if (p === 0)           return `0 د / ${_hbFmtMin(habit.targetMinutes)}`;
+    if (st === 'exceeded') return `⚠️ ${_hbFmtMin(p)} — تجاوزت بـ ${_hbFmtMin(p - habit.targetMinutes)}`;
+    return `${_hbFmtMin(p)} / ${_hbFmtMin(habit.targetMinutes)} (متبقي ${_hbFmtMin(habit.targetMinutes - p)})`;
+  }
+}
+
+/** عدد الأيام المتتالية الناجحة */
+function _hbStreak(habit) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let streak = 0;
   for (let i = 0; i < 365; i++) {
-    const d   = new Date(today); d.setDate(d.getDate() - i);
-    const key = localDateKey(d);
-    const st  = habitStatus(habit, key);
-    if (st === 'done') { streak++; }
-    else if (i > 0)    { break; }
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = _hbLocalDateKey(d);
+    if (_hbStatus(habit, key) === 'done') {
+      streak++;
+    } else if (i > 0) {
+      break;
+    }
   }
   return streak;
 }
 
-/** معدل إنجاز آخر 7 أيام (أمس وما قبله) */
-function completionRate(habit) {
-  const today = new Date(); today.setHours(0,0,0,0);
+/** معدل الإنجاز آخر 7 أيام (بدون اليوم الحالي) */
+function _hbCompletionRate(habit) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   let done = 0;
   for (let i = 1; i <= 7; i++) {
-    const d   = new Date(today); d.setDate(d.getDate() - i);
-    if (habitStatus(habit, localDateKey(d)) === 'done') done++;
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    if (_hbStatus(habit, _hbLocalDateKey(d)) === 'done') done++;
   }
   return Math.round((done / 7) * 100);
 }
 
-/**
- * هيتماب — آخر 84 يوم
- * level: 0=فارغ  1=خفيف  2=متوسط  3=كثير  4=كامل/تجاوز
- * exceeded: true إذا تجاوز حد max
- */
-function buildHeatmap(habit) {
-  const log    = loadHabitsLog();
-  const today  = new Date(); today.setHours(0,0,0,0);
+/** بناء بيانات الهيتماب — آخر 84 يوم */
+function _hbBuildHeatmap(habit) {
+  const log    = _hbLoadLog();
+  const today  = new Date(); today.setHours(0, 0, 0, 0);
   const result = [];
   for (let i = 83; i >= 0; i--) {
     const d    = new Date(today); d.setDate(d.getDate() - i);
-    const key  = localDateKey(d);
+    const key  = _hbLocalDateKey(d);
     const mins = (log[key] || {})[habit.id] || 0;
-    const st   = habitStatus(habit, key);
+    const st   = _hbStatus(habit, key);
     let level  = 0;
     let exceeded = false;
 
@@ -162,7 +222,7 @@ function buildHeatmap(habit) {
       if (habit.targetType === 'min') {
         const r = mins / habit.targetMinutes;
         level = r >= 1 ? 4 : r >= 0.75 ? 3 : r >= 0.5 ? 2 : 1;
-      } else { // max
+      } else {
         if (st === 'exceeded') { level = 4; exceeded = true; }
         else {
           const r = mins / habit.targetMinutes;
@@ -175,99 +235,149 @@ function buildHeatmap(habit) {
   return result;
 }
 
-// ─────────────────────────────────────────
-// 4. ربط التايمر
-// ─────────────────────────────────────────
+// ══════════════════════════════════════════
+// 4. الإشعارات (Toast)
+// ══════════════════════════════════════════
 
-// نتذكر ما أشعرنا به مرة واحدة فقط لكل حدث
-const _notifiedCompleted = {};
-const _notifiedExceeded  = {};
+function _hbToast(html, type = '') {
+  const t = document.createElement('div');
+  t.className = 'habit-achievement-toast' + (type ? ` hat-${type}` : '');
+  t.innerHTML = html;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('visible'));
+  setTimeout(() => {
+    t.classList.remove('visible');
+    setTimeout(() => t.remove(), 600);
+  }, 3500);
+}
 
+// ══════════════════════════════════════════
+// 5. ربط التايمر
+// ══════════════════════════════════════════
+
+// نتذكر ما أشعرنا به مرة واحدة فقط لكل حدث في نفس الجلسة
+const _hbNotifiedCompleted = {};
+const _hbNotifiedExceeded  = {};
+
+/**
+ * تُستدعى من script.js عند إنهاء أي نشاط
+ * @param {string} activityName اسم النشاط (مثل 'دراسة')
+ * @param {number} durationMinutes عدد الدقائق
+ */
 function onActivityCommitted(activityName, durationMinutes) {
-  const habits = loadHabits();
-  const today  = todayKey();
+  const habits  = _hbLoadHabits();
+  const today   = _hbTodayKey();
   let   updated = false;
 
   habits.forEach(habit => {
     if (!habit.linkedActivity || habit.linkedActivity !== activityName) return;
 
-    const before = getProgress(habit, today);
-    addMins(habit.id, durationMinutes, today);
-    const after  = getProgress(habit, today);
+    const before = _hbGetProgress(habit.id, today);
+    _hbAddMins(habit.id, durationMinutes, today);
+    const after  = _hbGetProgress(habit.id, today);
     updated = true;
 
+    const notifKey = habit.id + today;
+
     if (habit.targetType === 'min') {
-      // وصل الهدف لأول مرة
-      const key = habit.id + today;
-      if (before < habit.targetMinutes && after >= habit.targetMinutes && !_notifiedCompleted[key]) {
-        _notifiedCompleted[key] = true;
-        _toast(`<div class="hat-icon">${habit.icon}</div>
+      if (before < habit.targetMinutes && after >= habit.targetMinutes && !_hbNotifiedCompleted[notifKey]) {
+        _hbNotifiedCompleted[notifKey] = true;
+        _hbToast(`
+          <div class="hat-icon">${habit.icon}</div>
           <div class="hat-body">
             <div class="hat-title">✅ هدف مكتمل!</div>
             <div class="hat-name">${habit.name}</div>
             <div class="hat-desc">أحسنت! وصلت للهدف 🎉</div>
           </div>`, 'success');
       }
-    } else { // max
-      // تجاوز الحد لأول مرة اليوم
-      const key = habit.id + today;
-      if (before <= habit.targetMinutes && after > habit.targetMinutes && !_notifiedExceeded[key]) {
-        _notifiedExceeded[key] = true;
-        _toast(`<div class="hat-icon">⚠️</div>
+    } else {
+      if (before <= habit.targetMinutes && after > habit.targetMinutes && !_hbNotifiedExceeded[notifKey]) {
+        _hbNotifiedExceeded[notifKey] = true;
+        _hbToast(`
+          <div class="hat-icon">⚠️</div>
           <div class="hat-body">
             <div class="hat-title" style="color:#f43f5e">تجاوزت الحد!</div>
             <div class="hat-name">${habit.icon} ${habit.name}</div>
-            <div class="hat-desc">وصلت ${fmtMin(after)} — الحد ${fmtMin(habit.targetMinutes)}</div>
+            <div class="hat-desc">وصلت ${_hbFmtMin(after)} — الحد ${_hbFmtMin(habit.targetMinutes)}</div>
           </div>`, 'exceeded');
       }
     }
   });
 
   if (updated) {
-    checkAchievements();
+    _hbCheckAchievements();
     if (document.getElementById('page-habits')?.classList.contains('active')) {
       renderHabitsPage();
     }
   }
 }
 
-function _toast(html, type='') {
-  const t = document.createElement('div');
-  t.className = 'habit-achievement-toast' + (type ? ` hat-${type}` : '');
-  t.innerHTML = html;
-  document.body.appendChild(t);
-  requestAnimationFrame(() => t.classList.add('visible'));
-  setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 600); }, 3500);
-}
+// ══════════════════════════════════════════
+// 6. الإنجازات
+// ══════════════════════════════════════════
 
-// ─────────────────────────────────────────
-// 5. الإنجازات
-// ─────────────────────────────────────────
-
-const ACHIEVEMENTS = [
-  { id:'first',    icon:'🌱', name:'البداية',        desc:'أكملت عادتك الأولى',
-    check: (h) => h.some(x => habitStatus(x, todayKey()) === 'done') },
-  { id:'streak7',  icon:'🔥', name:'أسبوع ملتهب',   desc:'7 أيام متتالية في أي عادة',
-    check: (h) => h.some(x => habitStreak(x) >= 7) },
-  { id:'streak30', icon:'💎', name:'شهر من الذهب',  desc:'30 يوماً متتالياً في أي عادة',
-    check: (h) => h.some(x => habitStreak(x) >= 30) },
-  { id:'perfect',  icon:'⭐', name:'يوم مثالي',      desc:'أنجزت جميع العادات في يوم واحد',
-    check: (h) => h.length > 0 && h.every(x => habitStatus(x, todayKey()) === 'done') },
-  { id:'no_waste', icon:'🧘', name:'يوم بلا تسخيت', desc:'لا تسخيت طوال اليوم',
-    check: (h) => { const w=h.find(x=>x.linkedActivity==='تسخيت'); return w && getProgress(w,todayKey())===0 && new Date().getHours()>=20; } },
-  { id:'hero',     icon:'🏆', name:'بطل الدراسة',   desc:'دراسة 6 ساعات في يوم',
-    check: (h) => { const s=h.find(x=>x.linkedActivity==='دراسة'); return s && getProgress(s,todayKey())>=360; } },
+const HB_ACHIEVEMENTS = [
+  {
+    id: 'first',
+    icon: '🌱',
+    name: 'البداية',
+    desc: 'أكملت عادتك الأولى',
+    check: (habits) => habits.some(h => _hbStatus(h, _hbTodayKey()) === 'done'),
+  },
+  {
+    id: 'streak7',
+    icon: '🔥',
+    name: 'أسبوع ملتهب',
+    desc: '7 أيام متتالية في أي عادة',
+    check: (habits) => habits.some(h => _hbStreak(h) >= 7),
+  },
+  {
+    id: 'streak30',
+    icon: '💎',
+    name: 'شهر من الذهب',
+    desc: '30 يوماً متتالياً في أي عادة',
+    check: (habits) => habits.some(h => _hbStreak(h) >= 30),
+  },
+  {
+    id: 'perfect',
+    icon: '⭐',
+    name: 'يوم مثالي',
+    desc: 'أنجزت جميع العادات في يوم واحد',
+    check: (habits) => habits.length > 0 && habits.every(h => _hbStatus(h, _hbTodayKey()) === 'done'),
+  },
+  {
+    id: 'no_waste',
+    icon: '🧘',
+    name: 'يوم بلا تسخيت',
+    desc: 'لا تسخيت طوال اليوم',
+    check: (habits) => {
+      const w = habits.find(h => h.linkedActivity === 'تسخيت');
+      return w && _hbGetProgress(w.id, _hbTodayKey()) === 0 && new Date().getHours() >= 20;
+    },
+  },
+  {
+    id: 'hero',
+    icon: '🏆',
+    name: 'بطل الدراسة',
+    desc: 'دراسة 6 ساعات في يوم واحد',
+    check: (habits) => {
+      const s = habits.find(h => h.linkedActivity === 'دراسة');
+      return s && _hbGetProgress(s.id, _hbTodayKey()) >= 360;
+    },
+  },
 ];
 
-function checkAchievements() {
-  const habits = loadHabits();
-  const earned = loadAchievements();
-  let changed  = false;
-  ACHIEVEMENTS.forEach(def => {
+function _hbCheckAchievements() {
+  const habits  = _hbLoadHabits();
+  const earned  = _hbLoadAchievements();
+  let   changed = false;
+
+  HB_ACHIEVEMENTS.forEach(def => {
     if (!earned[def.id] && def.check(habits)) {
       earned[def.id] = { unlockedAt: Date.now() };
       changed = true;
-      _toast(`<div class="hat-icon">${def.icon}</div>
+      _hbToast(`
+        <div class="hat-icon">${def.icon}</div>
         <div class="hat-body">
           <div class="hat-title">🏅 إنجاز مفتوح!</div>
           <div class="hat-name">${def.name}</div>
@@ -275,44 +385,50 @@ function checkAchievements() {
         </div>`, 'achievement');
     }
   });
-  if (changed) saveAchievements(earned);
+
+  if (changed) _hbSaveAchievements(earned);
 }
 
-// ─────────────────────────────────────────
-// 6. رندر الصفحة
-// ─────────────────────────────────────────
+// ══════════════════════════════════════════
+// 7. رندر الصفحة
+// ══════════════════════════════════════════
 
 function renderHabitsPage() {
-  const today  = todayKey();
-  const habits = loadHabits();
-  _renderCards(habits, today);
-  _renderStats(habits, today);
-  _renderAchievements();
+  const today  = _hbTodayKey();
+  const habits = _hbLoadHabits();
+  _hbRenderCards(habits, today);
+  _hbRenderStats(habits, today);
+  _hbRenderAchievements();
+  // رندر مخطط الأسبوع بعد الإحصائيات
+  _hbRenderWeekChart(habits);
+  // رندر الهيتماب للعادة الأولى بشكل افتراضي
+  if (habits.length > 0) _hbRenderHeatmap(habits[0]);
+  else _hbRenderHeatmap(null);
 }
 
-/* ── بطاقات ── */
-function _renderCards(habits, today) {
+/* ── بطاقات العادات ── */
+function _hbRenderCards(habits, today) {
   const wrap = document.getElementById('habitsCardGrid');
   if (!wrap) return;
   wrap.innerHTML = '';
 
   if (!habits.length) {
-    wrap.innerHTML = `<div class="habits-empty">
-      <div class="habits-empty-icon">🌱</div>
-      <p>لا توجد عادات بعد</p>
-      <p style="font-size:.8rem;color:var(--text3)">ابدأ بإضافة عادتك الأولى!</p>
-    </div>`;
+    wrap.innerHTML = `
+      <div class="habits-empty">
+        <div class="habits-empty-icon">🌱</div>
+        <p>لا توجد عادات بعد</p>
+        <p style="font-size:.8rem;color:var(--text3)">ابدأ بإضافة عادتك الأولى!</p>
+      </div>`;
     return;
   }
 
   habits.forEach(habit => {
-    const st   = habitStatus(habit, today);
-    const pct  = progressPct(habit, today);
-    const bc   = barColor(habit, today);
-    const pl   = progressLabel(habit, today);
-    const sk   = habitStreak(habit);
-    const rate = completionRate(habit);
-
+    const st         = _hbStatus(habit, today);
+    const pct        = _hbProgressPct(habit, today);
+    const bc         = _hbBarColor(habit, today);
+    const pl         = _hbProgressLabel(habit, today);
+    const streak     = _hbStreak(habit);
+    const rate       = _hbCompletionRate(habit);
     const isDone     = st === 'done';
     const isExceeded = st === 'exceeded';
 
@@ -321,7 +437,8 @@ function _renderCards(habits, today) {
     if (isExceeded) badge = '<span class="hc-done-badge" style="filter:none">⚠️</span>';
 
     const card = document.createElement('div');
-    card.className = ['habit-card', isDone ? 'is-done' : '', isExceeded ? 'is-exceeded' : ''].filter(Boolean).join(' ');
+    const classes = ['habit-card', isDone ? 'is-done' : '', isExceeded ? 'is-exceeded' : ''].filter(Boolean).join(' ');
+    card.className = classes;
     card.dataset.id = habit.id;
     card.style.setProperty('--hc', isExceeded ? '#f43f5e' : habit.color);
 
@@ -333,8 +450,8 @@ function _renderCards(habits, today) {
         <div class="hc-info">
           <div class="hc-name">${habit.name}</div>
           <div class="hc-meta">
-            <span class="hc-type-badge">${habit.type==='daily'?'يومية':'أسبوعية'}</span>
-            <span class="hc-target">🎯 ${habit.targetType==='max'?'أقل من ':''}${fmtMin(habit.targetMinutes)}</span>
+            <span class="hc-type-badge">${habit.type === 'daily' ? 'يومية' : 'أسبوعية'}</span>
+            <span class="hc-target">🎯 ${habit.targetType === 'max' ? 'أقل من ' : ''}${_hbFmtMin(habit.targetMinutes)}</span>
           </div>
         </div>
         <div class="hc-actions">
@@ -348,120 +465,176 @@ function _renderCards(habits, today) {
         <div class="hc-progress-bar">
           <div class="hc-progress-fill" style="width:${pct}%;background:${bc}"></div>
         </div>
-        <div class="hc-progress-text${isExceeded?' hc-text-danger':''}">${pl}</div>
+        <div class="hc-progress-text${isExceeded ? ' hc-text-danger' : ''}">${pl}</div>
       </div>
       <div class="hc-footer">
-        <div class="hc-stat"><span>🔥</span><span class="hc-stat-val">${sk}</span><span class="hc-stat-lbl"> يوم</span></div>
+        <div class="hc-stat"><span>🔥</span><span class="hc-stat-val">${streak}</span><span class="hc-stat-lbl"> يوم</span></div>
         <div class="hc-stat"><span>📊</span><span class="hc-stat-val">${rate}%</span><span class="hc-stat-lbl"> أسبوع</span></div>
-        ${habit.linkedActivity?`<div class="hc-linked">🔗 ${habit.linkedActivity}</div>`:''}
+        ${habit.linkedActivity ? `<div class="hc-linked">🔗 ${habit.linkedActivity}</div>` : ''}
       </div>`;
 
     wrap.appendChild(card);
   });
 
-  wrap.querySelectorAll('.hc-del-btn').forEach(b  => b.addEventListener('click', e=>{e.stopPropagation();_deleteHabit(b.dataset.id);}));
-  wrap.querySelectorAll('.hc-edit-btn').forEach(b => b.addEventListener('click', e=>{e.stopPropagation();openHabitPopup(b.dataset.id);}));
-  wrap.querySelectorAll('.hc-add-btn').forEach(b  => b.addEventListener('click', e=>{e.stopPropagation();_openQuickLog(b.dataset.id);}));
+  // ربط الأحداث بعد إضافة البطاقات
+  wrap.querySelectorAll('.hc-del-btn').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); _hbDeleteHabit(b.dataset.id); }));
+  wrap.querySelectorAll('.hc-edit-btn').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); openHabitPopup(b.dataset.id); }));
+  wrap.querySelectorAll('.hc-add-btn').forEach(b =>
+    b.addEventListener('click', e => { e.stopPropagation(); _hbOpenQuickLog(b.dataset.id); }));
 }
 
-/* ── إحصائيات ── */
-function _renderStats(habits, today) {
-  const done = habits.filter(h => habitStatus(h,today)==='done').length;
-  document.getElementById('habitsStatToday')?.setAttribute('textContent', `${done} / ${habits.length}`);
-  const el1 = document.getElementById('habitsStatToday'); if(el1) el1.textContent=`${done} / ${habits.length}`;
+/* ── الإحصائيات العلوية ── */
+function _hbRenderStats(habits, today) {
+  const done = habits.filter(h => _hbStatus(h, today) === 'done').length;
 
-  let best=0; habits.forEach(h=>{const s=habitStreak(h);if(s>best)best=s;});
-  const el2 = document.getElementById('habitsStatStreak'); if(el2) el2.textContent=`${best} يوم`;
+  const el1 = document.getElementById('habitsStatToday');
+  if (el1) el1.textContent = `${done} / ${habits.length}`;
 
-  const wr = habits.length ? Math.round(habits.reduce((s,h)=>s+completionRate(h),0)/habits.length) : 0;
-  const el3 = document.getElementById('habitsStatWeekRate'); if(el3) el3.textContent=`${wr}%`;
+  let bestStreak = 0;
+  habits.forEach(h => { const s = _hbStreak(h); if (s > bestStreak) bestStreak = s; });
+  const el2 = document.getElementById('habitsStatStreak');
+  if (el2) el2.textContent = `${bestStreak} يوم`;
 
-  let bestH=null,worstH=null,br=-1,wr2=101;
-  habits.forEach(h=>{const r=completionRate(h);if(r>br){br=r;bestH=h;}if(r<wr2){wr2=r;worstH=h;}});
-  const el4=document.getElementById('habitsStatBest');   if(el4&&bestH)  el4.textContent=`${bestH.icon} ${bestH.name} (${br}%)`;
-  const el5=document.getElementById('habitsStatWorst');  if(el5&&worstH) el5.textContent=`${worstH.icon} ${worstH.name} (${wr2}%)`;
+  const weekRate = habits.length
+    ? Math.round(habits.reduce((s, h) => s + _hbCompletionRate(h), 0) / habits.length)
+    : 0;
+  const el3 = document.getElementById('habitsStatWeekRate');
+  if (el3) el3.textContent = `${weekRate}%`;
 
-  _renderWeekChart(habits);
-  _renderHeatmap(habits[0]||null);
+  let bestH = null, worstH = null, bestR = -1, worstR = 101;
+  habits.forEach(h => {
+    const r = _hbCompletionRate(h);
+    if (r > bestR)  { bestR  = r; bestH  = h; }
+    if (r < worstR) { worstR = r; worstH = h; }
+  });
+  const el4 = document.getElementById('habitsStatBest');
+  if (el4 && bestH)  el4.textContent = `${bestH.icon} ${bestH.name} (${bestR}%)`;
+  else if (el4)      el4.textContent = '—';
+
+  const el5 = document.getElementById('habitsStatWorst');
+  if (el5 && worstH) el5.textContent = `${worstH.icon} ${worstH.name} (${worstR}%)`;
+  else if (el5)      el5.textContent = '—';
 }
 
 /* ── مخطط الأسبوع ── */
-function _renderWeekChart(habits) {
+function _hbRenderWeekChart(habits) {
   const canvas = document.getElementById('habitsWeekChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const W=canvas.width, H=canvas.height;
-  ctx.clearRect(0,0,W,H);
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
 
-  const log   = loadHabitsLog();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const tc    = getComputedStyle(document.body).getPropertyValue('--text3').trim()||'#666';
+  const log   = _hbLoadLog();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const tc    = getComputedStyle(document.documentElement).getPropertyValue('--text3').trim() || '#666';
 
-  if (!habits.length) { ctx.fillStyle=tc; ctx.font='12px Cairo'; ctx.textAlign='center'; ctx.fillText('لا توجد بيانات',W/2,H/2); return; }
+  if (!habits.length) {
+    ctx.fillStyle = tc;
+    ctx.font = '12px Cairo, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('لا توجد بيانات', W / 2, H / 2);
+    return;
+  }
 
-  const pad={t:10,r:10,b:28,l:10};
-  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
-  const colW=cW/7;
+  const pad = { t: 10, r: 10, b: 28, l: 10 };
+  const cW  = W - pad.l - pad.r;
+  const cH  = H - pad.t - pad.b;
+  const colW = cW / 7;
 
-  for (let i=6;i>=0;i--) {
-    const d   = new Date(today); d.setDate(d.getDate()-i);
-    const key = localDateKey(d);
-    const dl  = loadHabitsLog()[key]||{};
-    const di  = 6-i;
-    const x   = pad.l+di*colW+colW*.1, w=colW*.8;
+  for (let i = 6; i >= 0; i--) {
+    const d   = new Date(today); d.setDate(d.getDate() - i);
+    const key = _hbLocalDateKey(d);
+    const dl  = log[key] || {};
+    const di  = 6 - i;
+    const x   = pad.l + di * colW + colW * 0.1;
+    const w   = colW * 0.8;
 
-    ctx.fillStyle='rgba(255,255,255,0.03)';
-    ctx.beginPath(); ctx.roundRect(x,pad.t,w,cH,4); ctx.fill();
+    // خلفية العمود
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, pad.t, w, cH, 4);
+    else               ctx.rect(x, pad.t, w, cH);
+    ctx.fill();
 
-    const bw = w/habits.length;
-    habits.forEach((h,hi)=>{
-      const mins = dl[h.id]||0;
-      // الشريط يعرض الوقت الفعلي — حتى لو ما وصل الهدف
-      const pct  = Math.min(1, mins/h.targetMinutes);
-      const barH = cH*pct;
-      const bx   = x+hi*bw+bw*.1;
-      const bw2  = bw*.8;
-      const st   = habitStatus(h, key);
-      const col  = (h.targetType==='max'&&st==='exceeded') ? '#f43f5e' : h.color;
+    const bw = w / Math.max(habits.length, 1);
+    habits.forEach((h, hi) => {
+      const mins = dl[h.id] || 0;
+      const pct  = Math.min(1, habit_targetMinutes_safe(h) > 0 ? mins / h.targetMinutes : 0);
+      const barH = cH * pct;
+      const bx   = x + hi * bw + bw * 0.1;
+      const bw2  = bw * 0.8;
+      const st   = _hbStatus(h, key);
+      const col  = (h.targetType === 'max' && st === 'exceeded') ? '#f43f5e' : h.color;
 
-      if (barH>0) {
-        const g=ctx.createLinearGradient(bx,pad.t+cH,bx,pad.t+cH-barH);
-        g.addColorStop(0,col+'88'); g.addColorStop(1,col);
-        ctx.fillStyle=g;
-        ctx.beginPath(); ctx.roundRect(bx,pad.t+cH-barH,bw2,barH,3); ctx.fill();
+      if (barH > 1) {
+        const g = ctx.createLinearGradient(bx, pad.t + cH, bx, pad.t + cH - barH);
+        g.addColorStop(0, col + '88');
+        g.addColorStop(1, col);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, pad.t + cH - barH, bw2, barH, 3);
+        else               ctx.rect(bx, pad.t + cH - barH, bw2, barH);
+        ctx.fill();
       }
-
-      // خط الهدف الأفقي
-      const goalY = pad.t + cH - cH; // top = 100%
-      // نرسم خط أفقي عند مستوى الهدف بدل الأعلى
-      const goalLineY = pad.t + cH*(1-1); // always top for now
     });
 
-    ctx.fillStyle=tc; ctx.font='9px Cairo'; ctx.textAlign='center';
-    ctx.fillText(d.toLocaleDateString('ar-IQ',{weekday:'short'}), pad.l+di*colW+colW/2, H-6);
+    // اسم اليوم
+    ctx.fillStyle = tc;
+    ctx.font = '9px Cairo, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      d.toLocaleDateString('ar-IQ', { weekday: 'short' }),
+      pad.l + di * colW + colW / 2,
+      H - 6
+    );
+  }
+
+  // ليجند الألوان
+  const legend = document.getElementById('habitsWeekLegend');
+  if (legend) {
+    legend.innerHTML = habits.map(h =>
+      `<span class="hcl-item">
+        <span class="hcl-dot" style="background:${h.color}"></span>
+        <span class="hcl-name">${h.icon} ${h.name}</span>
+      </span>`
+    ).join('');
   }
 }
 
-/* ── هيتماب ── */
-function _renderHeatmap(habit) {
+function habit_targetMinutes_safe(h) {
+  return h && h.targetMinutes > 0 ? h.targetMinutes : 1;
+}
+
+/* ── الهيتماب ── */
+function _hbRenderHeatmap(habit) {
   const wrap = document.getElementById('habitsHeatmap');
   if (!wrap) return;
   wrap.innerHTML = '';
 
-  const title = document.getElementById('heatmapTitle');
-
-  if (!habit) { wrap.innerHTML='<p style="font-size:.75rem;color:var(--text3)">أضف عادة لعرض الهيتماب</p>'; return; }
-  if (title) title.textContent=`${habit.icon} ${habit.name} — آخر 12 أسبوع`;
-
-  // قائمة اختيار
+  // تحديث قائمة الاختيار
   const sel = document.getElementById('heatmapHabitSelect');
   if (sel) {
-    const all = loadHabits();
-    sel.innerHTML = all.map(h=>`<option value="${h.id}"${h.id===habit.id?' selected':''}>${h.icon} ${h.name}</option>`).join('');
-    sel.onchange = () => { const f=all.find(h=>h.id===sel.value); if(f) _renderHeatmap(f); };
+    const all = _hbLoadHabits();
+    sel.innerHTML = all.map(h =>
+      `<option value="${h.id}"${habit && h.id === habit.id ? ' selected' : ''}>${h.icon} ${h.name}</option>`
+    ).join('');
+    sel.onchange = () => {
+      const found = all.find(h => h.id === sel.value);
+      if (found) _hbRenderHeatmap(found);
+    };
   }
 
-  const data = buildHeatmap(habit);
+  const title = document.getElementById('heatmapTitle');
+  if (!habit) {
+    if (title) title.textContent = '🗓 هيتماب العادات';
+    wrap.innerHTML = '<p style="font-size:.75rem;color:var(--text3);padding:8px">أضف عادة لعرض الهيتماب</p>';
+    return;
+  }
+  if (title) title.textContent = `${habit.icon} ${habit.name} — آخر 12 أسبوع`;
+
+  const data = _hbBuildHeatmap(habit);
   const grid = document.createElement('div');
   grid.className = 'heatmap-grid';
 
@@ -472,17 +645,15 @@ function _renderHeatmap(habit) {
     if (cell.mins === 0) {
       sq.style.background = 'var(--bg3)';
     } else if (cell.exceeded) {
-      // تجاوز حد max → تدرج أحمر
-      const reds = ['','#f43f5e33','#f43f5e66','#f43f5eaa','#f43f5e'];
-      sq.style.background = reds[cell.level]||'#f43f5e';
+      const reds = ['', '#f43f5e33', '#f43f5e66', '#f43f5eaa', '#f43f5e'];
+      sq.style.background = reds[cell.level] || '#f43f5e';
       sq.classList.add('hm-exceeded');
     } else {
-      // عادي → لون العادة
-      const shades = ['', habit.color+'33', habit.color+'66', habit.color+'aa', habit.color];
-      sq.style.background = shades[cell.level]||habit.color+'55';
+      const shades = ['', habit.color + '33', habit.color + '66', habit.color + 'aa', habit.color];
+      sq.style.background = shades[cell.level] || habit.color + '55';
     }
 
-    sq.title = `${cell.key}\n${fmtMin(cell.mins)}${cell.exceeded?' ⚠️ تجاوز':''}`;
+    sq.title = `${cell.key}\n${_hbFmtMin(cell.mins)}${cell.exceeded ? ' ⚠️ تجاوز' : ''}`;
     grid.appendChild(sq);
   });
 
@@ -490,42 +661,55 @@ function _renderHeatmap(habit) {
 }
 
 /* ── الإنجازات ── */
-function _renderAchievements() {
+function _hbRenderAchievements() {
   const wrap = document.getElementById('achievementsGrid');
   if (!wrap) return;
   wrap.innerHTML = '';
-  const earned = loadAchievements();
-  ACHIEVEMENTS.forEach(def => {
-    const ok = !!earned[def.id];
-    const d  = document.createElement('div');
-    d.className = `achievement-card ${ok?'unlocked':'locked'}`;
-    const dt = ok ? new Date(earned[def.id].unlockedAt).toLocaleDateString('ar-IQ',{day:'numeric',month:'short'}) : '';
-    d.innerHTML = `<div class="ach-icon">${ok?def.icon:'🔒'}</div><div class="ach-name">${def.name}</div><div class="ach-desc">${def.desc}</div>${ok?`<div class="ach-date">${dt}</div>`:''}`;
-    wrap.appendChild(d);
+
+  const earned = _hbLoadAchievements();
+  HB_ACHIEVEMENTS.forEach(def => {
+    const ok  = !!earned[def.id];
+    const div = document.createElement('div');
+    div.className = `achievement-card ${ok ? 'unlocked' : 'locked'}`;
+    const dt = ok
+      ? new Date(earned[def.id].unlockedAt).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' })
+      : '';
+    div.innerHTML = `
+      <div class="ach-icon">${ok ? def.icon : '🔒'}</div>
+      <div class="ach-name">${def.name}</div>
+      <div class="ach-desc">${def.desc}</div>
+      ${ok ? `<div class="ach-date">${dt}</div>` : ''}`;
+    wrap.appendChild(div);
   });
 }
 
-// ─────────────────────────────────────────
-// 7. CRUD
-// ─────────────────────────────────────────
+// ══════════════════════════════════════════
+// 8. CRUD العادات
+// ══════════════════════════════════════════
 
-let _mode='add', _editId=null;
+let _hbMode   = 'add';
+let _hbEditId = null;
 
-function openHabitPopup(editId=null) {
-  _mode=editId?'edit':'add'; _editId=editId;
-  const popup=document.getElementById('habitFormPopup');
-  const ttl=document.getElementById('habitFormTitle');
-  if(!popup) return;
-  ttl.textContent = editId ? '✏️ تعديل العادة' : '✨ إضافة عادة جديدة';
+function openHabitPopup(editId = null) {
+  _hbMode   = editId ? 'edit' : 'add';
+  _hbEditId = editId;
+
+  const popup = document.getElementById('habitFormPopup');
+  const ttl   = document.getElementById('habitFormTitle');
+  if (!popup) return;
+
+  if (ttl) ttl.textContent = editId ? '✏️ تعديل العادة' : '✨ إضافة عادة جديدة';
+
   if (editId) {
-    const h=loadHabits().find(x=>x.id===editId); if(!h) return;
+    const h = _hbLoadHabits().find(x => x.id === editId);
+    if (!h) return;
     document.getElementById('habitFormName').value       = h.name;
     document.getElementById('habitFormIcon').value       = h.icon;
     document.getElementById('habitFormTargetMins').value = h.targetMinutes;
     document.getElementById('habitFormTargetType').value = h.targetType;
     document.getElementById('habitFormType').value       = h.type;
-    document.getElementById('habitFormLinked').value     = h.linkedActivity||'';
-    _setColor(h.color);
+    document.getElementById('habitFormLinked').value     = h.linkedActivity || '';
+    _hbSetColor(h.color);
   } else {
     document.getElementById('habitFormName').value       = '';
     document.getElementById('habitFormIcon').value       = '⭐';
@@ -533,113 +717,205 @@ function openHabitPopup(editId=null) {
     document.getElementById('habitFormTargetType').value = 'min';
     document.getElementById('habitFormType').value       = 'daily';
     document.getElementById('habitFormLinked').value     = '';
-    _setColor('#6c63ff');
+    _hbSetColor('#6c63ff');
   }
+
   document.getElementById('habitOverlay').classList.add('active');
   popup.classList.add('active');
   document.getElementById('habitFormName').focus();
 }
 
 function closeHabitPopup() {
-  document.getElementById('habitOverlay').classList.remove('active');
-  document.getElementById('habitFormPopup').classList.remove('active');
+  document.getElementById('habitOverlay')?.classList.remove('active');
+  document.getElementById('habitFormPopup')?.classList.remove('active');
 }
 
-function _setColor(c) {
-  document.getElementById('habitFormColorVal').value = c;
-  document.getElementById('habitFormColorPreview').style.background = c;
-  document.querySelectorAll('.habit-color-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.color===c));
+function _hbSetColor(c) {
+  const valEl     = document.getElementById('habitFormColorVal');
+  const previewEl = document.getElementById('habitFormColorPreview');
+  const pickerEl  = document.getElementById('habitFormColorPicker');
+  if (valEl)     valEl.value = c;
+  if (previewEl) previewEl.style.background = c;
+  if (pickerEl)  pickerEl.value = c;
+  document.querySelectorAll('.habit-color-swatch').forEach(s =>
+    s.classList.toggle('selected', s.dataset.color === c));
 }
 
 function saveHabitForm() {
   const name   = document.getElementById('habitFormName').value.trim();
-  const icon   = document.getElementById('habitFormIcon').value.trim()||'⭐';
-  const color  = document.getElementById('habitFormColorVal').value;
-  const tMins  = parseInt(document.getElementById('habitFormTargetMins').value)||30;
+  const icon   = document.getElementById('habitFormIcon').value.trim() || '⭐';
+  const color  = document.getElementById('habitFormColorVal').value || '#6c63ff';
+  const tMins  = parseInt(document.getElementById('habitFormTargetMins').value) || 30;
   const tType  = document.getElementById('habitFormTargetType').value;
   const type   = document.getElementById('habitFormType').value;
-  const linked = document.getElementById('habitFormLinked').value||null;
-  if (!name) { document.getElementById('habitFormName').focus(); return; }
-  const habits = loadHabits();
-  if (_mode==='edit'&&_editId) {
-    const i=habits.findIndex(h=>h.id===_editId);
-    if(i>=0) habits[i]={...habits[i],name,icon,color,targetMinutes:tMins,targetType:tType,type,linkedActivity:linked};
-  } else {
-    habits.push({id:'h_'+Date.now(),name,icon,color,targetMinutes:tMins,targetType:tType,type,linkedActivity:linked,createdAt:Date.now()});
-  }
-  saveHabits(habits); closeHabitPopup(); renderHabitsPage();
-}
+  const linked = document.getElementById('habitFormLinked').value || null;
 
-function _deleteHabit(id) {
-  if(!confirm('هل تريد حذف هذه العادة؟')) return;
-  saveHabits(loadHabits().filter(h=>h.id!==id));
+  if (!name) {
+    document.getElementById('habitFormName').focus();
+    return;
+  }
+
+  const habits = _hbLoadHabits();
+  if (_hbMode === 'edit' && _hbEditId) {
+    const idx = habits.findIndex(h => h.id === _hbEditId);
+    if (idx >= 0) {
+      habits[idx] = { ...habits[idx], name, icon, color, targetMinutes: tMins, targetType: tType, type, linkedActivity: linked };
+    }
+  } else {
+    habits.push({
+      id:             'h_' + Date.now(),
+      name, icon, color,
+      targetMinutes:  tMins,
+      targetType:     tType,
+      type,
+      linkedActivity: linked,
+      createdAt:      Date.now(),
+    });
+  }
+
+  _hbSaveHabits(habits);
+  closeHabitPopup();
   renderHabitsPage();
 }
 
-// ─────────────────────────────────────────
-// 8. إضافة وقت يدوي
-// ─────────────────────────────────────────
+function _hbDeleteHabit(id) {
+  if (!confirm('هل تريد حذف هذه العادة؟')) return;
+  _hbSaveHabits(_hbLoadHabits().filter(h => h.id !== id));
+  renderHabitsPage();
+}
 
-let _qlId=null;
+// ══════════════════════════════════════════
+// 9. إضافة وقت يدوي (Quick Log)
+// ══════════════════════════════════════════
 
-function _openQuickLog(id) {
-  _qlId=id;
-  const h=loadHabits().find(x=>x.id===id); if(!h) return;
-  document.getElementById('quickLogTitle').textContent=`${h.icon} ${h.name}`;
-  document.getElementById('quickLogMins').value='';
-  document.getElementById('habitOverlay').classList.add('active');
-  document.getElementById('habitQuickLogPopup').classList.add('active');
-  document.getElementById('quickLogMins').focus();
+let _hbQlId = null;
+
+function _hbOpenQuickLog(id) {
+  _hbQlId = id;
+  const h = _hbLoadHabits().find(x => x.id === id);
+  if (!h) return;
+
+  const titleEl = document.getElementById('quickLogTitle');
+  const minsEl  = document.getElementById('quickLogMins');
+  if (titleEl) titleEl.textContent = `${h.icon} ${h.name}`;
+  if (minsEl)  minsEl.value = '';
+
+  document.getElementById('habitOverlay')?.classList.add('active');
+  document.getElementById('habitQuickLogPopup')?.classList.add('active');
+  minsEl?.focus();
 }
 
 function closeQuickLogPopup() {
-  document.getElementById('habitOverlay').classList.remove('active');
-  document.getElementById('habitQuickLogPopup').classList.remove('active');
-  _qlId=null;
+  document.getElementById('habitOverlay')?.classList.remove('active');
+  document.getElementById('habitQuickLogPopup')?.classList.remove('active');
+  _hbQlId = null;
 }
 
 function saveQuickLog() {
-  if (!_qlId) return;
-  const mins=parseInt(document.getElementById('quickLogMins').value)||0;
-  if (mins<=0) { document.getElementById('quickLogMins').focus(); return; }
-  const today=todayKey();
-  const habit=loadHabits().find(h=>h.id===_qlId);
-  const before=getProgress(habit,today);
-  addMins(_qlId,mins,today);
-  const after=getProgress(habit,today);
-  if (habit.targetType==='min'&&before<habit.targetMinutes&&after>=habit.targetMinutes)
-    _toast(`<div class="hat-icon">${habit.icon}</div><div class="hat-body"><div class="hat-title">✅ هدف مكتمل!</div><div class="hat-name">${habit.name}</div></div>`,'success');
-  else if (habit.targetType==='max'&&before<=habit.targetMinutes&&after>habit.targetMinutes)
-    _toast(`<div class="hat-icon">⚠️</div><div class="hat-body"><div class="hat-title" style="color:#f43f5e">تجاوزت الحد!</div><div class="hat-name">${habit.icon} ${habit.name}</div></div>`,'exceeded');
-  checkAchievements();
+  if (!_hbQlId) return;
+  const minsEl = document.getElementById('quickLogMins');
+  const mins   = parseInt(minsEl?.value) || 0;
+  if (mins <= 0) { minsEl?.focus(); return; }
+
+  const today = _hbTodayKey();
+  const habit = _hbLoadHabits().find(h => h.id === _hbQlId);
+  if (!habit) return;
+
+  const before = _hbGetProgress(habit.id, today);
+  _hbAddMins(_hbQlId, mins, today);
+  const after  = _hbGetProgress(habit.id, today);
+
+  if (habit.targetType === 'min' && before < habit.targetMinutes && after >= habit.targetMinutes) {
+    _hbToast(`
+      <div class="hat-icon">${habit.icon}</div>
+      <div class="hat-body">
+        <div class="hat-title">✅ هدف مكتمل!</div>
+        <div class="hat-name">${habit.name}</div>
+      </div>`, 'success');
+  } else if (habit.targetType === 'max' && before <= habit.targetMinutes && after > habit.targetMinutes) {
+    _hbToast(`
+      <div class="hat-icon">⚠️</div>
+      <div class="hat-body">
+        <div class="hat-title" style="color:#f43f5e">تجاوزت الحد!</div>
+        <div class="hat-name">${habit.icon} ${habit.name}</div>
+      </div>`, 'exceeded');
+  }
+
+  _hbCheckAchievements();
   closeQuickLogPopup();
   renderHabitsPage();
 }
 
-// ─────────────────────────────────────────
-// 9. تهيئة
-// ─────────────────────────────────────────
+// ══════════════════════════════════════════
+// 10. تهيئة الأحداث
+// ══════════════════════════════════════════
 
-function _setupHabitsEvents() {
-  document.getElementById('addHabitBtn')?.addEventListener('click',()=>openHabitPopup());
-  document.getElementById('habitFormSave')?.addEventListener('click',saveHabitForm);
-  document.getElementById('habitFormCancel')?.addEventListener('click',closeHabitPopup);
-  document.querySelectorAll('.habit-color-swatch').forEach(s=>s.addEventListener('click',()=>_setColor(s.dataset.color)));
-  document.getElementById('habitFormColorPicker')?.addEventListener('input',e=>_setColor(e.target.value));
-  document.getElementById('quickLogSave')?.addEventListener('click',saveQuickLog);
-  document.getElementById('quickLogCancel')?.addEventListener('click',closeQuickLogPopup);
-  document.getElementById('quickLogMins')?.addEventListener('keydown',e=>{if(e.key==='Enter')saveQuickLog();if(e.key==='Escape')closeQuickLogPopup();});
-  document.getElementById('habitFormName')?.addEventListener('keydown',e=>{if(e.key==='Enter')saveHabitForm();if(e.key==='Escape')closeHabitPopup();});
-  document.getElementById('habitOverlay')?.addEventListener('click',()=>{closeHabitPopup();closeQuickLogPopup();});
+function _hbSetupEvents() {
+  // زر إضافة عادة جديدة
+  document.getElementById('addHabitBtn')?.addEventListener('click', () => openHabitPopup());
+
+  // نموذج العادة
+  document.getElementById('habitFormSave')?.addEventListener('click', saveHabitForm);
+  document.getElementById('habitFormCancel')?.addEventListener('click', closeHabitPopup);
+  document.getElementById('habitFormCancel2')?.addEventListener('click', closeHabitPopup);
+
+  // ألوان العادة
+  document.querySelectorAll('.habit-color-swatch').forEach(s =>
+    s.addEventListener('click', () => _hbSetColor(s.dataset.color)));
+  document.getElementById('habitFormColorPicker')?.addEventListener('input', e => _hbSetColor(e.target.value));
+
+  // Quick Log
+  document.getElementById('quickLogSave')?.addEventListener('click', saveQuickLog);
+  document.getElementById('quickLogCancel')?.addEventListener('click', closeQuickLogPopup);
+  document.getElementById('quickLogCancel2')?.addEventListener('click', closeQuickLogPopup);
+  document.getElementById('quickLogMins')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  saveQuickLog();
+    if (e.key === 'Escape') closeQuickLogPopup();
+  });
+
+  // نموذج العادة — keyboard
+  document.getElementById('habitFormName')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  saveHabitForm();
+    if (e.key === 'Escape') closeHabitPopup();
+  });
+
+  // الأوفرلاي — إغلاق عند الضغط خارج النافذة
+  document.getElementById('habitOverlay')?.addEventListener('click', () => {
+    closeHabitPopup();
+    closeQuickLogPopup();
+  });
 }
 
-document.addEventListener('DOMContentLoaded',()=>{
-  _setupHabitsEvents();
-  setTimeout(checkAchievements,1200);
+// ══════════════════════════════════════════
+// 11. التهيئة الرئيسية
+// ══════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  _hbSetupEvents();
+  // نؤخر فحص الإنجازات قليلاً لضمان تحميل كل شيء
+  setTimeout(_hbCheckAchievements, 1500);
 });
 
-const _origSwitch=window.switchTab;
-window.switchTab=function(t){
-  if(typeof _origSwitch==='function') _origSwitch(t);
-  if(t==='habits') renderHabitsPage();
-};
+// ── ربط التبويبات (hook آمن لا يكسر switchTab الأصلي) ──
+// نستخدم MutationObserver بدل تعديل window.switchTab مباشرة
+// لأن هذا يضمن الشغل حتى لو script.js لم يُحمَّل بعد
+
+(function _hbObserveTabs() {
+  // ننتظر DOM
+  const init = () => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.tab === 'habits') {
+          // نؤخر قليلاً لضمان أن صفحة العادات أصبحت active
+          setTimeout(renderHabitsPage, 50);
+        }
+      });
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
